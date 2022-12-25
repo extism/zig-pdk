@@ -1,0 +1,50 @@
+name: CI
+on: [push, pull_request]
+
+jobs:
+  test-example:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Install Zig
+        uses: goto-bus-stop/setup-zig@v2
+
+      - name: Setup Python env
+        uses: actions/setup-python@v4
+        with:
+          python-version: "3.9"
+          check-latest: true
+
+      - name: Install Poetry
+        uses: snok/install-poetry@v1
+
+      - name: Checkout extism/cli
+        uses: actions/checkout@v3
+        with:
+          repository: extism/cli
+          path: cli
+
+      - name: Install Extism & CLI
+        run: |
+          pushd cli
+          pip3 install cffi
+          pip3 install .
+          popd
+          extism install git
+      - name: Compile example
+        run: |
+          zig build basic_example
+          
+      - name: Test example
+        run: |
+          TEST=$(extism call examples-out/Basic\ example.wasm --input "this is a test" --set-config='{"thing": "1", "a": "b"}' count_vowels)
+          echo $TEST | grep '"count": 4'
+          echo $TEST | grep '"config": "1"'
+          echo $TEST | grep '"a": "this is var a"'
+        
+          extism call examples-out/Basic\ example.wasm make_http_request | grep '"userId": 1'
