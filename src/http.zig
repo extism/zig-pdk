@@ -45,7 +45,7 @@ pub const HttpRequest = struct {
         try self.headers.append(key, value);
     }
 
-    pub fn setBody(self: *HttpRequest, body: []u8) !void {
+    pub fn setBody(self: *HttpRequest, body: []const u8) void {
         self.body = body;
     }
 };

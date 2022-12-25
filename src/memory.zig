@@ -29,7 +29,7 @@ pub const Memory = struct {
         }
     }
 
-    pub fn store(self: Memory, buf: []u8) void {
+    pub fn store(self: Memory, buf: []const u8) void {
         const len = buf.len;
         var i: usize = 0;
         while (i < len) {
@@ -51,19 +51,14 @@ pub const Memory = struct {
         return Memory{ .offset = @as(u64, offset), .length = @as(u64, c_len) };
     }
 
-    pub fn allocateBytes(data: []u8) Memory {
+    pub fn allocateBytes(data: []const u8) Memory {
         const c_len = @as(u64, data.len);
         const offset = c.extism_alloc(c_len);
         const mem = Memory.init(offset, c_len);
         mem.store(data);
         return Memory{ .offset = offset, .length = c_len };
     }
-    pub fn allocateString(allocator: std.mem.Allocator, data: []const u8) !Memory {
-        var bytes_buf = try allocator.alloc(u8, data.len);
-        defer allocator.free(bytes_buf);
-        std.mem.copy(u8, bytes_buf, data);
-        return Memory.allocateBytes(bytes_buf);
-    }
+
     pub fn free(self: Memory) void {
         c.extism_free(self.offset);
     }

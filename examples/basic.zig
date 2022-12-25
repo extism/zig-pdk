@@ -19,7 +19,7 @@ export fn count_vowels() i32 {
     }
     var var_a_optional = plugin.getVar("a") catch unreachable;
     if (var_a_optional == null) {
-        plugin.setVarString("a", "this is var a") catch unreachable;
+        plugin.setVar("a", "this is var a");
     } else {
         allocator.free(var_a_optional.?);
     }
@@ -31,11 +31,8 @@ export fn count_vowels() i32 {
     const output = std.fmt.allocPrint(allocator, "{{\"count\": {d}, \"config\": \"{s}\", \"a\": \"{s}\"}}", .{ count, thing, var_a }) catch unreachable;
     defer allocator.free(output);
 
-    plugin.outputString(output) catch unreachable;
+    plugin.output(output);
 
-    // another way of doing it
-    // const mem = plugin.allocateString(output) catch unreachable;
-    // plugin.outputMemory(mem);
     return 0;
 }
 

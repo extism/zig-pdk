@@ -39,7 +39,7 @@ pub const Plugin = struct {
         c.extism_output_set(mem.offset, mem.length);
     }
 
-    pub fn output(self: Plugin, data: []u8) void {
+    pub fn output(self: Plugin, data: []const u8) void {
         _ = self; // to make the interface consistent
         const c_len = @as(u64, data.len);
         const offset = c.extism_alloc(c_len);
@@ -49,16 +49,9 @@ pub const Plugin = struct {
         c.extism_output_set(offset, c_len);
     }
 
-    pub fn outputString(self: Plugin, data: []const u8) !void {
-        var bytes_buf = try self.allocator.alloc(u8, data.len);
-        defer self.allocator.free(bytes_buf);
-        std.mem.copy(u8, bytes_buf, data);
-        self.output(bytes_buf);
-    }
-
     /// IMPORTANT: it's the caller's responsibility to free the returned string
     pub fn getConfig(self: Plugin, key: []const u8) !?[]u8 {
-        const key_mem = try Memory.allocateString(self.allocator, key);
+        const key_mem = Memory.allocateBytes(key);
         defer key_mem.free();
         const offset = c.extism_config_get(key_mem.offset);
         const c_len = c.extism_length(offset);
@@ -85,15 +78,15 @@ pub const Plugin = struct {
         }
     }
 
-    pub fn log(self: Plugin, level: LogLevel, data: []const u8) !void {
-        const mem = try Memory.allocateString(self.allocator, data);
+    pub fn log(self: Plugin, level: LogLevel, data: []const u8) void {
+        const mem = Memory.allocateBytes(data);
         defer mem.free();
         self.logMemory(level, mem);
     }
 
     /// IMPORTANT: it's the caller's responsibility to free the returned string
     pub fn getVar(self: Plugin, key: []const u8) !?[]u8 {
-        const key_mem = try Memory.allocateString(self.allocator, key);
+        const key_mem = Memory.allocateBytes(key);
         defer key_mem.free();
         const offset = c.extism_var_get(key_mem.offset);
         const c_len = c.extism_length(offset);
@@ -108,23 +101,18 @@ pub const Plugin = struct {
         return value;
     }
 
-    pub fn setVar(self: Plugin, key: []const u8, value: []u8) !void {
-        const key_mem = try Memory.allocateString(self.allocator, key);
+    pub fn setVar(self: Plugin, key: []const u8, value: []const u8) void {
+        _ = self; // to make the interface consistent
+        const key_mem = Memory.allocateBytes(key);
         defer key_mem.free();
         const val_mem = Memory.allocateBytes(value);
         defer val_mem.free();
         c.extism_var_set(key_mem.offset, val_mem.offset);
     }
 
-    pub fn setVarString(self: Plugin, key: []const u8, value: []const u8) !void {
-        var bytes_buf = try self.allocator.alloc(u8, value.len);
-        defer self.allocator.free(bytes_buf);
-        std.mem.copy(u8, bytes_buf, value);
-        try self.setVar(key, bytes_buf);
-    }
-
-    pub fn removeVar(self: Plugin, key: []const u8) !void {
-        const mem = try Memory.allocateString(self.allocator, key);
+    pub fn removeVar(self: Plugin, key: []const u8) void {
+        _ = self; // to make the interface consistent
+        const mem = Memory.allocateBytes(key);
         defer mem.free();
         c.extism_var_set(mem.offset, 0);
     }
@@ -155,7 +143,7 @@ pub const Plugin = struct {
         try json_arraylist.append('}');
         const json_str = try json_arraylist.toOwnedSlice();
         defer self.allocator.free(json_str);
-        const req = try Memory.allocateString(self.allocator, json_str);
+        const req = Memory.allocateBytes(json_str);
         defer req.free();
         const body = Memory.allocateBytes(http_request.body);
         defer body.free();
