@@ -24,9 +24,7 @@ pub const Memory = struct {
             }
 
             const x = c.extism_load_u64(self.offset + @as(u64, i));
-            // TODO: make it more ziggy
-            const ptr = (@ptrCast([*c]u64, @alignCast(std.meta.alignment([*c]u64), buf)) + (i / 8));
-            ptr.* = x;
+            std.mem.writeIntLittle(u64, buf[i..][0..8], x);
             i += 8;
         }
     }
@@ -40,9 +38,8 @@ pub const Memory = struct {
                 i += 1;
                 continue;
             }
-            // TODO: make it more ziggy
-            const ptr = (@ptrCast([*c]u64, @alignCast(std.meta.alignment([*c]u64), buf)) + (i / 8));
-            c.extism_store_u64(self.offset + @as(u64, i), ptr.*);
+            const data = std.mem.readIntLittle(u64, buf[i..][0..8]);
+            c.extism_store_u64(self.offset + @as(u64, i), data);
             i += 8;
         }
     }

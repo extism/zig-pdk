@@ -28,9 +28,7 @@ pub const Plugin = struct {
             }
 
             const x = c.extism_input_load_u64(@as(u64, i));
-            // TODO: make it more ziggy
-            const ptr = (@ptrCast([*c]u64, @alignCast(std.meta.alignment([*c]u64), buf)) + (i / 8));
-            ptr.* = x;
+            std.mem.writeIntLittle(u64, buf[i..][0..8], x);
             i += 8;
         }
         return buf;
