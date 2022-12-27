@@ -119,18 +119,21 @@ pub const Plugin = struct {
 
     pub fn request(self: Plugin, http_request: http.HttpRequest) !http.HttpResponse {
         var headers = std.ArrayList(u8).init(self.allocator);
-        try headers.appendSlice("{");
-        for (http_request.headers._items.items) |header, i| {
-            var name = try std.json.stringifyAlloc(self.allocator, header.name, .{});
-            defer self.allocator.free(name);
-            const value = try std.json.stringifyAlloc(self.allocator, header.value, .{});
-            defer self.allocator.free(value);
-
-            const json = try std.mem.concat(self.allocator, u8, &[_][]const u8{ name, ":", value, if (i < http_request.headers._items.items.len - 1) "," else "" });
-            defer self.allocator.free(json);
+        var it = http_request.headers.iterator();
+        try headers.append('{');
+        var i: usize = 0;
+        while (it.next()) |entry| {
+            i += 1;
+            const name = entry.key_ptr.*;
+            const name_json = try std.json.stringifyAlloc(self.allocator, name, .{});
+            defer self.allocator.free(name_json);
+            const value = entry.value_ptr.*;
+            const value_json = try std.json.stringifyAlloc(self.allocator, value, .{});
+            defer self.allocator.free(value_json);
+            const json = try std.mem.concat(self.allocator, u8, &[_][]const u8{ name_json, ":", value_json, if (i < http_request.headers.count()) "," else "" });
             try headers.appendSlice(json);
         }
-        try headers.appendSlice("}");
+        try headers.append('}');
         const headers_str = try headers.toOwnedSlice();
         defer self.allocator.free(headers_str);
         var json_arraylist = std.ArrayList(u8).init(self.allocator);
