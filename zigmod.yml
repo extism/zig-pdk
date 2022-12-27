@@ -1,5 +1,5 @@
 id: hybfpvr9c5u221hacy3fc4yt4mqorwbcfsz2tuo67um7bafd
-name: extism-zig-pdk
+name: extism-pdk
 main: src/main.zig
 license: BSD-3-Clause
 description: Extism Plug-in Development Kit for Zig

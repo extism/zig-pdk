@@ -6,7 +6,7 @@ pub fn build(b: *std.build.Builder) void {
     const mode = b.standardReleaseOptions();
     const target = b.standardTargetOptions(.{ .default_target = .{ .cpu_arch = .wasm32, .os_tag = .freestanding } });
 
-    const lib = b.addStaticLibrary("extism-zig-pdk", "src/main.zig");
+    const lib = b.addStaticLibrary("extism-pdk", "src/main.zig");
     lib.setBuildMode(mode);
     lib.addIncludePath("src/");
     lib.install();
@@ -18,11 +18,10 @@ pub fn build(b: *std.build.Builder) void {
     test_step.dependOn(&main_tests.step);
 
     var basic_example = b.addExecutable("Basic example", "examples/basic.zig");
-    basic_example.addPackagePath("extism-zig-pdk", "src/main.zig");
+    basic_example.addPackagePath("extism-pdk", "src/main.zig");
     basic_example.setTarget(target);
     basic_example.setBuildMode(mode);
     basic_example.setOutputDir("examples-out");
-    
 
     const basic_example_step = b.step("basic_example", "Build basic_example");
     basic_example_step.dependOn(&basic_example.step);
