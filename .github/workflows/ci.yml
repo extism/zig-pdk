@@ -29,12 +29,6 @@ jobs:
           repository: extism/cli
           path: cli
 
-      - name: Install Rust (latest stable)
-        uses: actions-rs/toolchain@v1
-        with:
-          toolchain: stable
-          override: true
-
       - name: Install Extism & CLI
         run: |
           pushd cli
@@ -53,4 +47,6 @@ jobs:
           echo $TEST | grep '"config": "1"'
           echo $TEST | grep '"a": "this is var a"'
         
-          extism call examples-out/Basic\ example.wasm make_http_request | grep '"userId": 1'
+          TEST=$(extism call examples-out/Basic\ example.wasm make_http_request)
+          echo $TEST
+          echo $TEST | grep '"userId": 1'
