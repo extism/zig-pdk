@@ -1,5 +1,5 @@
 const std = @import("std");
-const zig_pdk = @import("extism-zig-pdk");
+const zig_pdk = @import("extism-pdk");
 const pdk = zig_pdk.Plugin;
 const http = zig_pdk.http;
 
@@ -47,6 +47,6 @@ export fn make_http_request() i32 {
     defer res.deinit();
 
     plugin.outputMemory(res.memory);
-    
+
     return 0;
 }

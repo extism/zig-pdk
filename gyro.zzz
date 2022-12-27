@@ -1,5 +1,5 @@
 pkgs:
-  extism-zig-pdk:
+  extism-pdk:
     version: 0.0.1
     description: "Extism Plug-in Development Kit for Zig"
     license: BSD-3-Clause
