@@ -38,7 +38,8 @@ export fn count_vowels() i32 {
     // access host-provided configuration (key/value)
     const thing = plugin.getConfig("thing") catch unreachable orelse "<unset by host>";
 
-    const output = std.json.stringifyAlloc(allocator, Output{ .count = count, .config = thing, .a = var_a }, .{}) catch unreachable;
+    const data = Output{ .count = count, .config = thing, .a = var_a };
+    const output = std.json.stringifyAlloc(allocator, data, .{}) catch unreachable;
     defer allocator.free(output);
 
     // write the plugin data back to the host
