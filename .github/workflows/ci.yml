@@ -41,7 +41,7 @@ jobs:
         run: |
           zig build basic_example
 
-      - name: Test count_vowels
+      - name: Test example
         run : |
           TEST=$(extism call examples-out/Basic\ example.wasm --input "this is a test" --set-config='{"thing": "1", "a": "b"}' --log-level=debug count_vowels | jq)
           echo $TEST | grep '"count": 4'
