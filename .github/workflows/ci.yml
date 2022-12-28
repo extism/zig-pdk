@@ -43,7 +43,7 @@ jobs:
 
       - name: Test count_vowels
         run : |
-          TEST=$(extism call examples-out/Basic\ example.wasm --input "this is a test" --set-config='{"thing": "1", "a": "b"}' --log-level=debug count_vowels)
+          TEST=$(extism call examples-out/Basic\ example.wasm --input "this is a test" --set-config='{"thing": "1", "a": "b"}' --log-level=debug count_vowels | jq)
           echo $TEST | grep '"count": 4'
           echo $TEST | grep '"config": "1"'
           echo $TEST | grep '"a": "this is var a"'

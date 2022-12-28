@@ -30,6 +30,7 @@ export fn count_vowels() i32 {
     // use persistent variables owned by a plugin instance (stored in-memory between function calls)
     var var_a_optional = plugin.getVar("a") catch unreachable;
     plugin.log(zig_pdk.LogLevel.Debug, "plugin var get");
+
     if (var_a_optional == null) {
         plugin.setVar("a", "this is var a");
         plugin.log(zig_pdk.LogLevel.Debug, "plugin var set");
@@ -42,10 +43,11 @@ export fn count_vowels() i32 {
     // access host-provided configuration (key/value)
     const thing = plugin.getConfig("thing") catch unreachable orelse "<unset by host>";
     plugin.log(zig_pdk.LogLevel.Debug, "plugin config get");
+
     const data = Output{ .count = count, .config = thing, .a = var_a };
     const output = std.json.stringifyAlloc(allocator, data, .{}) catch unreachable;
     defer allocator.free(output);
-    plugin.log(zig_pdk.LogLevel.Debug, "plugin json call");
+    plugin.log(zig_pdk.LogLevel.Debug, "plugin json encoding");
 
     // write the plugin data back to the host
     plugin.output(output);
