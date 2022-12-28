@@ -36,6 +36,13 @@ jobs:
           pip3 install .
           popd
           extism install latest
+
+          extism info
+          curl https://raw.githubusercontent.com/extism/extism/main/wasm/code.wasm > code.wasm
+
+          extism call code.wasm count_vowels --input "this is a test"
+    
+          
       - name: Compile example
         run: |
           zig build basic_example
