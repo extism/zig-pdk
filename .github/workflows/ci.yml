@@ -39,7 +39,7 @@ jobs:
       - name: Compile example
         run: |
           zig build basic_example
-          
+          file examples-out/Basic\ example.wasm
       - name: Test count_vowels
         run : |
           TEST=$(extism call examples-out/Basic\ example.wasm --input "this is a test" --set-config='{"thing": "1", "a": "b"}' count_vowels)
