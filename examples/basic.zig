@@ -15,10 +15,10 @@ const Output = struct {
 
 export fn count_vowels() i32 {
     const plugin = pdk.init(allocator);
-    plugin.log(zig_pdk.LogLevel.Debug, "plugin start");
+    plugin.log(.Debug, "plugin start");
     const input = plugin.getInput() catch unreachable;
     defer allocator.free(input);
-    plugin.log(zig_pdk.LogLevel.Debug, "plugin input");
+    plugin.log(.Debug, "plugin input");
     var count: i32 = 0;
     for (input) |char| {
         switch (char) {
@@ -29,11 +29,11 @@ export fn count_vowels() i32 {
 
     // use persistent variables owned by a plugin instance (stored in-memory between function calls)
     var var_a_optional = plugin.getVar("a") catch unreachable;
-    plugin.log(zig_pdk.LogLevel.Debug, "plugin var get");
+    plugin.log(.Debug, "plugin var get");
 
     if (var_a_optional == null) {
         plugin.setVar("a", "this is var a");
-        plugin.log(zig_pdk.LogLevel.Debug, "plugin var set");
+        plugin.log(.Debug, "plugin var set");
     } else {
         allocator.free(var_a_optional.?);
     }
@@ -42,16 +42,16 @@ export fn count_vowels() i32 {
 
     // access host-provided configuration (key/value)
     const thing = plugin.getConfig("thing") catch unreachable orelse "<unset by host>";
-    plugin.log(zig_pdk.LogLevel.Debug, "plugin config get");
+    plugin.log(.Debug, "plugin config get");
 
     const data = Output{ .count = count, .config = thing, .a = var_a };
     const output = std.json.stringifyAlloc(allocator, data, .{}) catch unreachable;
     defer allocator.free(output);
-    plugin.log(zig_pdk.LogLevel.Debug, "plugin json encoding");
+    plugin.log(.Debug, "plugin json encoding");
 
     // write the plugin data back to the host
     plugin.output(output);
-    plugin.log(zig_pdk.LogLevel.Debug, "plugin output");
+    plugin.log(.Debug, "plugin output");
 
     return 0;
 }
