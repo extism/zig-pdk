@@ -3,7 +3,7 @@ const c = @import("ffi.zig");
 const Memory = @import("memory.zig").Memory;
 pub const http = @import("http.zig");
 
-const LogLevel = enum { Info, Debug, Warn, Error };
+pub const LogLevel = enum { Info, Debug, Warn, Error };
 
 pub const Plugin = struct {
     allocator: std.mem.Allocator,
