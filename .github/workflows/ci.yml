@@ -35,31 +35,19 @@ jobs:
           pip3 install cffi
           pip3 install .
           popd
-          extism install latest
-
-          extism info
-          curl https://raw.githubusercontent.com/extism/extism/main/wasm/code.wasm > code.wasm
-
-          extism call code.wasm count_vowels --input "this is a test"
-    
+          extism install git
           
       - name: Compile example
         run: |
           zig build basic_example
-          file examples-out/Basic\ example.wasm
+
       - name: Test count_vowels
         run : |
-          TEST=$(extism call examples-out/Basic\ example.wasm --input "this is a test" --set-config='{"thing": "1", "a": "b"}' count_vowels)
+          TEST=$(extism call examples-out/Basic\ example.wasm --input "this is a test" --set-config='{"thing": "1", "a": "b"}' --log-level=debug count_vowels)
           echo $TEST | grep '"count": 4'
           echo $TEST | grep '"config": "1"'
           echo $TEST | grep '"a": "this is var a"'
 
-      - name: Test curl
-        run: | 
-          curl https://jsonplaceholder.typicode.com/todos/1
-
-      - name: Test make_http_request
-        run: |
           TEST=$(extism call examples-out/Basic\ example.wasm make_http_request)
           echo $TEST
           echo $TEST | grep '"userId": 1'
