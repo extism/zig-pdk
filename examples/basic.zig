@@ -1,7 +1,7 @@
 const std = @import("std");
-const zig_pdk = @import("extism-pdk");
-const pdk = zig_pdk.Plugin;
-const http = zig_pdk.http;
+const extism_pdk = @import("extism-pdk");
+const Plugin = extism_pdk.Plugin;
+const http = extism_pdk.http;
 
 pub fn main() void {}
 const allocator = std.heap.wasm_allocator;
@@ -14,7 +14,7 @@ const Output = struct {
 };
 
 export fn count_vowels() i32 {
-    const plugin = pdk.init(allocator);
+    const plugin = Plugin.init(allocator);
     plugin.log(.Debug, "plugin start");
     const input = plugin.getInput() catch unreachable;
     defer allocator.free(input);
@@ -57,7 +57,7 @@ export fn count_vowels() i32 {
 }
 
 export fn make_http_request() i32 {
-    const plugin = pdk.init(allocator);
+    const plugin = Plugin.init(allocator);
     // create an HTTP request via Extism built-in function (doesn't require WASI)
     var req = http.HttpRequest.init(allocator, "GET", "https://jsonplaceholder.typicode.com/todos/1");
     defer req.deinit();
