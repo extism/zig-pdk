@@ -22,7 +22,7 @@ pub fn build(b: *std.Build) void {
         .target = target,
         .optimize = optimize,
     });
-    basic_example.addPackagePath("extism-pdk", "src/main.zig");
+    basic_example.addAnonymousModule("extism-pdk", .{ .source_file = .{ .path = "src/main.zig" } });
     basic_example.rdynamic = true;
     basic_example.setOutputDir("examples-out");
 
