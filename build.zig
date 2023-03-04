@@ -9,28 +9,24 @@ pub fn build(b: *std.Build) void {
             @compileError(std.fmt.comptimePrint("Your Zig version v{} does not meet the minimum build requirement of v{}", .{ current_zig, min_zig }));
         }
     }
-    // Standard release options allow the person running `zig build` to select
-    // between Debug, ReleaseSafe, ReleaseFast, and ReleaseSmall.
+
     const optimize = b.standardOptimizeOption(.{});
     const target = b.standardTargetOptions(.{
         .default_target = .{ .abi = .musl, .os_tag = .freestanding, .cpu_arch = .wasm32 },
     });
 
+    const tres_module = b.dependency("tres", .{}).module("tres");
+
     b.addModule(.{
         .name = "extism-pdk",
         .source_file = .{ .path = "src/main.zig" },
+        .dependencies = &.{.{ .name = "tres", .module = tres_module }},
     });
 
-    // const pdk_module = b.createModule(.{
-    //     .source_file = .{ .path = "src/main.zig" },
-    // });
-    // const lib = b.addStaticLibrary(.{
-    //     .name = "extism-pdk",
-    //     .root_source_file = .{ .path = "src/main.zig" },
-    //     .target = target,
-    //     .optimize = optimize,
-    // });
-    // lib.install();
+    const pdk_module = b.createModule(.{
+        .source_file = .{ .path = "src/main.zig" },
+        .dependencies = &.{.{ .name = "tres", .module = tres_module }},
+    });
 
     var basic_example = b.addExecutable(.{
         .name = "Basic example",
@@ -38,8 +34,7 @@ pub fn build(b: *std.Build) void {
         .target = target,
         .optimize = optimize,
     });
-    // basic_example.addModule("extism-pdk", pdk_module);
-    basic_example.addAnonymousModule("extism-pdk", .{ .source_file = .{ .path = "src/main.zig" } });
+    basic_example.addModule("extism-pdk", pdk_module);
     basic_example.rdynamic = true;
     basic_example.setOutputDir("examples-out");
 

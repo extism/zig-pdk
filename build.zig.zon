@@ -1,0 +1,11 @@
+.{
+    .name = "extism-pdk",
+    .version = "0.1.0",
+
+    .dependencies = .{
+        .tres = .{
+            .url = "https://github.com/ziglibs/tres/archive/40376a289106d57f64875aa619d6f8cc90fb385c.tar.gz",
+            .hash = "1220a50381b1f9ab75b6bd7dc87efc655b3eb919f17ec340e2956fe813f889d8b7dc",
+        },
+    },
+}

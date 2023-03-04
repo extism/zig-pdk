@@ -1,7 +1,2 @@
 zig-*
 examples-out
-.zigmod
-deps.zig
-zigmod.lock
-gyro.lock
-.gyro/
