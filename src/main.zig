@@ -1,5 +1,6 @@
 const std = @import("std");
 const c = @import("ffi.zig");
+const tres = @import("tres");
 const Memory = @import("memory.zig").Memory;
 pub const http = @import("http.zig");
 
@@ -117,40 +118,24 @@ pub const Plugin = struct {
         c.extism_var_set(mem.offset, 0);
     }
 
-    pub fn request(self: Plugin, http_request: http.HttpRequest) !http.HttpResponse {
-        var headers = std.ArrayList(u8).init(self.allocator);
-        var it = http_request.headers.iterator();
-        try headers.append('{');
-        var i: usize = 0;
-        while (it.next()) |entry| {
-            i += 1;
-            const name = entry.key_ptr.*;
-            const name_json = try std.json.stringifyAlloc(self.allocator, name, .{});
-            defer self.allocator.free(name_json);
-            const value = entry.value_ptr.*;
-            const value_json = try std.json.stringifyAlloc(self.allocator, value, .{});
-            defer self.allocator.free(value_json);
-            const json = try std.mem.concat(self.allocator, u8, &[_][]const u8{ name_json, ":", value_json, if (i < http_request.headers.count()) "," else "" });
-            try headers.appendSlice(json);
-        }
-        try headers.append('}');
-        const headers_str = try headers.toOwnedSlice();
-        defer self.allocator.free(headers_str);
+    pub fn request(self: Plugin, http_request: http.HttpRequest, body: ?[]const u8) !http.HttpResponse {
         var json_arraylist = std.ArrayList(u8).init(self.allocator);
-        try json_arraylist.appendSlice("{\"url\": \"");
-        try json_arraylist.appendSlice(http_request.url);
-        try json_arraylist.appendSlice("\", \"method\": \"");
-        try json_arraylist.appendSlice(http_request.method);
-        try json_arraylist.appendSlice("\", \"headers\": ");
-        try json_arraylist.appendSlice(headers_str);
-        try json_arraylist.append('}');
+        var json_writer = std.io.bufferedWriter(json_arraylist.writer());
+        try tres.stringify(http_request, .{}, json_writer.writer());
+        try json_writer.flush();
         const json_str = try json_arraylist.toOwnedSlice();
         defer self.allocator.free(json_str);
         const req = Memory.allocateBytes(json_str);
         defer req.free();
-        const body = Memory.allocateBytes(http_request.body);
-        defer body.free();
-        const offset = c.extism_http_request(req.offset, body.offset);
+        const req_body = b: {
+            if (body) |bdy| {
+                break :b Memory.allocateBytes(bdy);
+            } else {
+                break :b Memory.allocate(0);
+            }
+        };
+        defer req_body.free();
+        const offset = c.extism_http_request(req.offset, req_body.offset);
         const length = c.extism_length(offset);
         const status = @intCast(u16, c.extism_http_status_code());
 
