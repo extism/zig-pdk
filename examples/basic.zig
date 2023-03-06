@@ -67,7 +67,7 @@ export fn make_http_request() i32 {
     req.setHeader("another", "again") catch unreachable;
 
     // make the request and get the response back
-    const res = plugin.request(req) catch unreachable;
+    const res = plugin.request(req, null) catch unreachable;
     defer res.deinit();
 
     // `outputMemory` provides a zero-copy way to write plugin data back to the host

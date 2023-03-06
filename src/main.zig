@@ -118,7 +118,7 @@ pub const Plugin = struct {
         c.extism_var_set(mem.offset, 0);
     }
 
-    pub fn request(self: Plugin, http_request: http.HttpRequest) !http.HttpResponse {
+    pub fn request(self: Plugin, http_request: http.HttpRequest, body: ?[]const u8) !http.HttpResponse {
         var json_arraylist = std.ArrayList(u8).init(self.allocator);
         var json_writer = std.io.bufferedWriter(json_arraylist.writer());
         try tres.stringify(http_request, .{}, json_writer.writer());
@@ -127,9 +127,15 @@ pub const Plugin = struct {
         defer self.allocator.free(json_str);
         const req = Memory.allocateBytes(json_str);
         defer req.free();
-        const body = Memory.allocateBytes(http_request.body);
-        defer body.free();
-        const offset = c.extism_http_request(req.offset, body.offset);
+        const req_body = b: {
+            if (body) |bdy| {
+                break :b Memory.allocateBytes(bdy);
+            } else {
+                break :b Memory.allocate(0);
+            }
+        };
+        defer req_body.free();
+        const offset = c.extism_http_request(req.offset, req_body.offset);
         const length = c.extism_length(offset);
         const status = @intCast(u16, c.extism_http_status_code());
 
