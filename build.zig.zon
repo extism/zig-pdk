@@ -4,8 +4,8 @@
 
     .dependencies = .{
         .tres = .{
-            .url = "https://github.com/ziglibs/tres/archive/40376a289106d57f64875aa619d6f8cc90fb385c.tar.gz",
-            .hash = "1220a50381b1f9ab75b6bd7dc87efc655b3eb919f17ec340e2956fe813f889d8b7dc",
+            .url = "https://github.com/ziglibs/tres/archive/707a09313b42e05d6ae22d1590499eece5f968ce.tar.gz",
+            .hash = "1220beaae8d152baa941a10b7ef3d3a59d093b257047035e2373c3c2f876ad29ccc8",
         },
     },
 }
