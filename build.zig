@@ -66,6 +66,6 @@ pub fn build(b: *std.Build) void {
     b.installArtifact(basic_example);
     const create_example_dir = CreateExampleDirStep.addStep(b);
     const basic_example_step = b.step("basic_example", "Build basic_example");
-    basic_example_step.dependOn(&basic_example.step);
     basic_example_step.dependOn(&create_example_dir.step);
+    basic_example_step.dependOn(&basic_example.step);
 }
