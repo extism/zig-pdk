@@ -48,6 +48,6 @@ jobs:
           echo $TEST | grep '"config": "1"'
           echo $TEST | grep '"a": "this is var a"'
 
-          TEST=$(extism call examples-out/Basic\ example.wasm make_http_request)
+          TEST=$(extism call examples-out/Basic\ example.wasm make_http_request --allow-host '*')
           echo $TEST
           echo $TEST | grep '"userId": 1'
