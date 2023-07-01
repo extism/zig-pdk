@@ -18,7 +18,7 @@ pub const Plugin = struct {
     // IMPORTANT: It's the caller's responsibility to free the returned slice
     pub fn getInput(self: Plugin) ![]u8 {
         const len = c.extism_input_length();
-        var buf = try self.allocator.alloc(u8, @intCast(usize, len));
+        var buf = try self.allocator.alloc(u8, @intCast(len));
         errdefer self.allocator.free(buf);
         var i: usize = 0;
         while (i < len) {
@@ -61,7 +61,7 @@ pub const Plugin = struct {
         }
         const memory = Memory.init(offset, c_len);
         defer memory.free();
-        const value = try self.allocator.alloc(u8, @intCast(usize, c_len));
+        const value = try self.allocator.alloc(u8, @intCast(c_len));
         errdefer self.allocator.free(value);
         memory.load(value);
         return value;
@@ -96,7 +96,7 @@ pub const Plugin = struct {
         }
         const memory = Memory.init(offset, c_len);
         defer memory.free();
-        const value = try self.allocator.alloc(u8, @intCast(usize, c_len));
+        const value = try self.allocator.alloc(u8, @intCast(c_len));
         errdefer self.allocator.free(value);
         memory.load(value);
         return value;
@@ -137,7 +137,7 @@ pub const Plugin = struct {
         defer req_body.free();
         const offset = c.extism_http_request(req.offset, req_body.offset);
         const length = c.extism_length(offset);
-        const status = @intCast(u16, c.extism_http_status_code());
+        const status: u16 = @intCast(c.extism_http_status_code());
 
         const mem = Memory.init(offset, length);
         defer mem.free();

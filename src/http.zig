@@ -7,7 +7,7 @@ pub const HttpResponse = struct {
 
     /// IMPORTANT: it's the caller's responsibility to free the returned string
     pub fn body(self: HttpResponse, allocator: std.mem.Allocator) ![]u8 {
-        var buf = try allocator.alloc(u8, @intCast(usize, self.memory.length));
+        var buf = try allocator.alloc(u8, @intCast(self.memory.length));
         errdefer allocator.free(buf);
         self.memory.load(buf);
         return buf;
