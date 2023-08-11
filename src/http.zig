@@ -1,5 +1,5 @@
 const std = @import("std");
-const Memory = @import("memory.zig").Memory;
+const Memory = @import("Memory.zig");
 
 pub const HttpResponse = struct {
     memory: Memory,
@@ -25,21 +25,21 @@ pub const HttpResponse = struct {
 pub const HttpRequest = struct {
     url: []const u8,
     method: []const u8,
-    headers: std.StringHashMap([]const u8),
+    headers: std.json.ArrayHashMap([]const u8),
 
-    pub fn init(allocator: std.mem.Allocator, method: []const u8, url: []const u8) HttpRequest {
+    pub fn init(method: []const u8, url: []const u8) HttpRequest {
         return HttpRequest{
             .method = method,
             .url = url,
-            .headers = std.StringHashMap([]const u8).init(allocator),
+            .headers = std.json.ArrayHashMap([]const u8){},
         };
     }
 
-    pub fn deinit(self: *HttpRequest) void {
-        self.headers.deinit();
+    pub fn deinit(self: *HttpRequest, allocator: std.mem.Allocator) void {
+        self.headers.deinit(allocator);
     }
 
-    pub fn setHeader(self: *HttpRequest, key: []const u8, value: []const u8) !void {
-        try self.headers.put(key, value);
+    pub fn setHeader(self: *HttpRequest, allocator: std.mem.Allocator, key: []const u8, value: []const u8) !void {
+        try self.headers.map.put(allocator, key, value);
     }
 };

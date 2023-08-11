@@ -1,7 +1,6 @@
 const std = @import("std");
 const c = @import("ffi.zig");
-const tres = @import("tres");
-const Memory = @import("memory.zig").Memory;
+const Memory = @import("Memory.zig");
 pub const http = @import("http.zig");
 
 const LogLevel = enum { Info, Debug, Warn, Error };
@@ -67,8 +66,6 @@ pub const Plugin = struct {
         return value;
     }
 
-    /// There's an unresolved 'Invalid memory offset' error when calling this function directly.
-    /// Use `log` instead.
     pub fn logMemory(self: Plugin, level: LogLevel, memory: Memory) void {
         _ = self; // to make the interface consistent
         switch (level) {
@@ -119,13 +116,9 @@ pub const Plugin = struct {
     }
 
     pub fn request(self: Plugin, http_request: http.HttpRequest, body: ?[]const u8) !http.HttpResponse {
-        var json_arraylist = std.ArrayList(u8).init(self.allocator);
-        var json_writer = std.io.bufferedWriter(json_arraylist.writer());
-        try tres.stringify(http_request, .{}, json_writer.writer());
-        try json_writer.flush();
-        const json_str = try json_arraylist.toOwnedSlice();
-        defer self.allocator.free(json_str);
-        const req = Memory.allocateBytes(json_str);
+        const json = try std.json.stringifyAlloc(self.allocator, http_request, .{ .emit_null_optional_fields = false });
+        defer self.allocator.free(json);
+        const req = Memory.allocateBytes(json);
         defer req.free();
         const req_body = b: {
             if (body) |bdy| {
