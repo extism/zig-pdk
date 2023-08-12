@@ -59,12 +59,12 @@ export fn count_vowels() i32 {
 export fn make_http_request() i32 {
     const plugin = Plugin.init(allocator);
     // create an HTTP request via Extism built-in function (doesn't require WASI)
-    var req = http.HttpRequest.init(allocator, "GET", "https://jsonplaceholder.typicode.com/todos/1");
-    defer req.deinit();
+    var req = http.HttpRequest.init("GET", "https://jsonplaceholder.typicode.com/todos/1");
+    defer req.deinit(allocator);
 
     // set headers on the request object
-    req.setHeader("some-name", "some-value") catch unreachable;
-    req.setHeader("another", "again") catch unreachable;
+    req.setHeader(allocator, "some-name", "some-value") catch unreachable;
+    req.setHeader(allocator, "another", "again") catch unreachable;
 
     // make the request and get the response back
     const res = plugin.request(req, null) catch unreachable;
