@@ -1,5 +1,5 @@
 const std = @import("std");
-const c = @import("ffi.zig");
+const extism = @import("ffi.zig");
 const Memory = @import("Memory.zig");
 pub const http = @import("http.zig");
 
@@ -16,18 +16,18 @@ pub const Plugin = struct {
 
     // IMPORTANT: It's the caller's responsibility to free the returned slice
     pub fn getInput(self: Plugin) ![]u8 {
-        const len = c.extism_input_length();
+        const len = extism.input_length();
         var buf = try self.allocator.alloc(u8, @intCast(len));
         errdefer self.allocator.free(buf);
         var i: usize = 0;
         while (i < len) {
             if (len - i < 8) {
-                buf[i] = c.extism_input_load_u8(@as(u64, i));
+                buf[i] = extism.input_load_u8(@as(u64, i));
                 i += 1;
                 continue;
             }
 
-            const x = c.extism_input_load_u64(@as(u64, i));
+            const x = extism.input_load_u64(@as(u64, i));
             std.mem.writeIntLittle(u64, buf[i..][0..8], x);
             i += 8;
         }
@@ -36,25 +36,25 @@ pub const Plugin = struct {
 
     pub fn outputMemory(self: Plugin, mem: Memory) void {
         _ = self; // to make the interface consistent
-        c.extism_output_set(mem.offset, mem.length);
+        extism.output_set(mem.offset, mem.length);
     }
 
     pub fn output(self: Plugin, data: []const u8) void {
         _ = self; // to make the interface consistent
         const c_len = @as(u64, data.len);
-        const offset = c.extism_alloc(c_len);
+        const offset = extism.alloc(c_len);
         const memory = Memory.init(offset, c_len);
         defer memory.free();
         memory.store(data);
-        c.extism_output_set(offset, c_len);
+        extism.output_set(offset, c_len);
     }
 
     /// IMPORTANT: it's the caller's responsibility to free the returned string
     pub fn getConfig(self: Plugin, key: []const u8) !?[]u8 {
         const key_mem = Memory.allocateBytes(key);
         defer key_mem.free();
-        const offset = c.extism_config_get(key_mem.offset);
-        const c_len = c.extism_length(offset);
+        const offset = extism.config_get(key_mem.offset);
+        const c_len = extism.length(offset);
         if (offset == 0 or c_len == 0) {
             return null;
         }
@@ -69,10 +69,10 @@ pub const Plugin = struct {
     pub fn logMemory(self: Plugin, level: LogLevel, memory: Memory) void {
         _ = self; // to make the interface consistent
         switch (level) {
-            .Info => c.extism_log_info(memory.offset),
-            .Debug => c.extism_log_debug(memory.offset),
-            .Warn => c.extism_log_warn(memory.offset),
-            .Error => c.extism_log_error(memory.offset),
+            .Info => extism.log_info(memory.offset),
+            .Debug => extism.log_debug(memory.offset),
+            .Warn => extism.log_warn(memory.offset),
+            .Error => extism.log_error(memory.offset),
         }
     }
 
@@ -86,8 +86,8 @@ pub const Plugin = struct {
     pub fn getVar(self: Plugin, key: []const u8) !?[]u8 {
         const key_mem = Memory.allocateBytes(key);
         defer key_mem.free();
-        const offset = c.extism_var_get(key_mem.offset);
-        const c_len = c.extism_length(offset);
+        const offset = extism.var_get(key_mem.offset);
+        const c_len = extism.length(offset);
         if (offset == 0 or c_len == 0) {
             return null;
         }
@@ -105,14 +105,14 @@ pub const Plugin = struct {
         defer key_mem.free();
         const val_mem = Memory.allocateBytes(value);
         defer val_mem.free();
-        c.extism_var_set(key_mem.offset, val_mem.offset);
+        extism.var_set(key_mem.offset, val_mem.offset);
     }
 
     pub fn removeVar(self: Plugin, key: []const u8) void {
         _ = self; // to make the interface consistent
         const mem = Memory.allocateBytes(key);
         defer mem.free();
-        c.extism_var_set(mem.offset, 0);
+        extism.extism_var_set(mem.offset, 0);
     }
 
     pub fn request(self: Plugin, http_request: http.HttpRequest, body: ?[]const u8) !http.HttpResponse {
@@ -128,9 +128,9 @@ pub const Plugin = struct {
             }
         };
         defer req_body.free();
-        const offset = c.extism_http_request(req.offset, req_body.offset);
-        const length = c.extism_length(offset);
-        const status: u16 = @intCast(c.extism_http_status_code());
+        const offset = extism.http_request(req.offset, req_body.offset);
+        const length = extism.length(offset);
+        const status: u16 = @intCast(extism.http_status_code());
 
         const mem = Memory.init(offset, length);
         defer mem.free();
