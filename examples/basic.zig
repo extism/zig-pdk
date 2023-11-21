@@ -28,7 +28,7 @@ export fn count_vowels() i32 {
     }
 
     // use persistent variables owned by a plugin instance (stored in-memory between function calls)
-    var var_a_optional = plugin.getVar("a") catch unreachable;
+    const var_a_optional = plugin.getVar("a") catch unreachable;
     plugin.log(.Debug, "plugin var get");
 
     if (var_a_optional == null) {
