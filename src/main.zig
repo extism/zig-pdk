@@ -28,7 +28,7 @@ pub const Plugin = struct {
             }
 
             const x = extism.input_load_u64(@as(u64, i));
-            std.mem.writeInt(u64, buf[i..][0..8], x, std.builtin.Endian.little);
+            std.mem.writeInt(u64, buf[i..][0..8], x, std.builtin.Endian.Little);
             i += 8;
         }
         return buf;
