@@ -114,18 +114,30 @@ pub const Plugin = struct {
         return value;
     }
 
-    pub fn setVar(self: Plugin, key: []const u8, value: []const u8) void {
-        _ = self; // to make the interface consistent
-        const key_mem = Memory.allocateBytes(key);
+    pub fn getVarInt(self: Plugin, comptime T: type, key: []const u8) !?T {
+        const result = try self.getVar(key);
+
+        if (result) |buf| {
+            return std.mem.readPackedInt(i32, buf, 0, .little);
+        }
+
+        return null;
+    }
+
         defer key_mem.free();
         const val_mem = Memory.allocateBytes(value);
         defer val_mem.free();
         extism.var_set(key_mem.offset, val_mem.offset);
     }
 
-    pub fn removeVar(self: Plugin, key: []const u8) void {
-        _ = self; // to make the interface consistent
-        const mem = Memory.allocateBytes(key);
+    pub fn setVarInt(self: Plugin, comptime T: type, key: []const u8, value: T) !void {
+        const buffer = try self.allocator.alloc(u8, 8);
+        errdefer self.allocator.free(buffer);
+        std.mem.writePackedInt(T, buffer, 0, value, .little);
+
+        self.setVar(key, buffer);
+    }
+
         defer mem.free();
         extism.extism_var_set(mem.offset, 0);
     }
