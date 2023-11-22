@@ -49,6 +49,21 @@ pub const Plugin = struct {
         extism.output_set(offset, c_len);
     }
 
+    pub fn setErrorMemory(self: Plugin, mem: Memory) void {
+        _ = self; // to make the interface consistent
+        extism.error_set(mem.offset);
+    }
+
+    pub fn setError(self: Plugin, data: []const u8) void {
+        _ = self; // to make the interface consistent
+        const c_len = @as(u64, data.len);
+        const offset = extism.alloc(c_len);
+        const memory = Memory.init(offset, c_len);
+        defer memory.free();
+        memory.store(data);
+        extism.error_set(offset);
+    }
+
     /// IMPORTANT: it's the caller's responsibility to free the returned string
     pub fn getConfig(self: Plugin, key: []const u8) !?[]u8 {
         const key_mem = Memory.allocateBytes(key);
