@@ -45,21 +45,6 @@ pub fn store(self: Self, buf: []const u8) void {
     }
 }
 
-pub fn allocate(length: usize) Self {
-    const c_len = @as(u64, length);
-    const offset = extism.alloc(c_len);
-
-    return .{ .offset = @as(u64, offset), .length = @as(u64, c_len) };
-}
-
-pub fn allocateBytes(data: []const u8) Self {
-    const c_len = @as(u64, data.len);
-    const offset = extism.alloc(c_len);
-    const mem = init(offset, c_len);
-    mem.store(data);
-    return .{ .offset = offset, .length = c_len };
-}
-
 pub fn free(self: Self) void {
     extism.free(self.offset);
 }
