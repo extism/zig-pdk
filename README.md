@@ -319,7 +319,7 @@ export fn hello_from_python() i32 {
     const ptr = a_python_func(mem.offset);
     const rmem = plugin.findMemory(ptr);
 
-    const buffer = plugin.allocator.alloc(u8, rmem.length) catch unreachable;
+    const buffer = plugin.allocator.alloc(u8, @intCast(rmem.length)) catch unreachable;
     rmem.load(buffer);
     plugin.output(buffer);
 
