@@ -143,7 +143,7 @@ pub const Plugin = struct {
         const result = try self.getVar(key);
 
         if (result) |buf| {
-            return std.mem.readPackedInt(i32, buf, 0, .little);
+            return std.mem.readPackedInt(T, buf, 0, .little);
         }
 
         return null;
@@ -158,8 +158,8 @@ pub const Plugin = struct {
     }
 
     pub fn setVarInt(self: Plugin, comptime T: type, key: []const u8, value: T) !void {
-        const buffer = try self.allocator.alloc(u8, 8);
-        errdefer self.allocator.free(buffer);
+        const buffer = try self.allocator.alloc(u8, @sizeOf(T));
+        defer self.allocator.free(buffer);
         std.mem.writePackedInt(T, buffer, 0, value, .little);
 
         self.setVar(key, buffer);
@@ -168,7 +168,7 @@ pub const Plugin = struct {
     pub fn removeVar(self: Plugin, key: []const u8) void {
         const mem = self.allocateBytes(key);
         defer mem.free();
-        extism.extism_var_set(mem.offset, 0);
+        extism.var_set(mem.offset, 0);
     }
 
     pub fn request(self: Plugin, http_request: http.HttpRequest, body: ?[]const u8) !http.HttpResponse {
