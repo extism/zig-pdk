@@ -20,7 +20,7 @@ pub fn build(b: *std.Build) void {
     });
 
     var basic_example = b.addExecutable(.{
-        .name = "Basic example",
+        .name = "basic-example",
         .root_source_file = .{ .path = "examples/basic.zig" },
         .target = target,
         .optimize = optimize,
