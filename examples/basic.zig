@@ -135,25 +135,3 @@ export fn log_stuff() i32 {
 
     return 0;
 }
-
-pub extern "extism:host/user" fn a_python_func(u64) u64;
-
-export fn hello_from_python() i32 {
-    const plugin = Plugin.init(allocator);
-
-    const msg = "An argument to send to Python";
-    const mem = plugin.allocateBytes(msg);
-    defer mem.free();
-
-    const ptr = a_python_func(mem.offset);
-    const rmem = plugin.findMemory(ptr);
-
-    const buffer = plugin.allocator.alloc(u8, @intCast(rmem.length)) catch unreachable;
-    rmem.load(buffer);
-    plugin.output(buffer);
-
-    // OR, you can directly output the memory
-    // plugin.outputMemory(rmem);
-
-    return 0;
-}
