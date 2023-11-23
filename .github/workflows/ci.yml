@@ -41,9 +41,9 @@ jobs:
           echo $TEST
           echo $TEST | grep 'Hello, Benjamin!'
 
-          TEST=$(extism call zig-out/bin/basic-example.wasm greet)
+          TEST=$(extism call zig-out/bin/basic-example.wasm greet 2>&1 || true)
           echo $TEST
-          echo $TEST | grep 'Error: This plug-in requires a 'user' key in the config'
+          echo $TEST | grep "Error: This plug-in requires a 'user' key in the config"
 
           TEST=$(extism call zig-out/bin/basic-example.wasm add --input='{"a": 20, "b": 21}')
           echo $TEST | grep '{"sum":41}'
