@@ -25,7 +25,7 @@ pub fn load(self: Self, buf: []u8) void {
         }
 
         const x = extism.load_u64(self.offset + @as(u64, i));
-        std.mem.writeIntLittle(u64, buf[i..][0..8], x);
+        std.mem.writeInt(u64, buf[i..][0..8], x, std.builtin.Endian.little);
         i += 8;
     }
 }
@@ -39,25 +39,10 @@ pub fn store(self: Self, buf: []const u8) void {
             i += 1;
             continue;
         }
-        const data = std.mem.readIntLittle(u64, buf[i..][0..8]);
+        const data = std.mem.readInt(u64, buf[i..][0..8], std.builtin.Endian.little);
         extism.store_u64(self.offset + @as(u64, i), data);
         i += 8;
     }
-}
-
-pub fn allocate(length: usize) Self {
-    const c_len = @as(u64, length);
-    const offset = extism.alloc(c_len);
-
-    return .{ .offset = @as(u64, offset), .length = @as(u64, c_len) };
-}
-
-pub fn allocateBytes(data: []const u8) Self {
-    const c_len = @as(u64, data.len);
-    const offset = extism.alloc(c_len);
-    const mem = init(offset, c_len);
-    mem.store(data);
-    return .{ .offset = offset, .length = c_len };
 }
 
 pub fn free(self: Self) void {
