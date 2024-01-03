@@ -51,7 +51,7 @@ pub fn build(b: *std.Build) void {
     const optimize = b.standardOptimizeOption(.{});
     const target = b.standardTargetOptions(.{
         .default_target = .{ .abi = .musl, .os_tag = .freestanding, .cpu_arch = .wasm32 },
-        // If you need to include WASI, update the .os_tag above to .wasi:
+        // If you need to include WASI, update the `.os_tag` field above to .wasi:
         // .default_target = .{ .abi = .musl, .os_tag = .wasi, .cpu_arch = .wasm32 },
     });
 
@@ -64,8 +64,6 @@ pub fn build(b: *std.Build) void {
     });
     plugin.addModule("extism-pdk", pdk_module);
     plugin.rdynamic = true;
-    // If you plan to use a "command"-style WASI module, delete this so _start is exported as the entrypoint
-    plugin.entry = .disabled; 
 
     b.installArtifact(plugin);
     const plugin_step = b.step("my-plugin", "Build my-plugin");
