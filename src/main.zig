@@ -185,11 +185,10 @@ pub const Plugin = struct {
         };
         defer req_body.free();
         const offset = extism.http_request(req.offset, req_body.offset);
-        const length = extism.length(offset);
+        const length = extism.length_unsafe(offset);
         const status: u16 = @intCast(extism.http_status_code());
 
         const mem = Memory.init(offset, length);
-        defer mem.free();
         return http.HttpResponse{
             .memory = mem,
             .status = status,

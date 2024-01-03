@@ -1,6 +1,7 @@
 pub const ExtismPointer = u64;
 pub extern "extism:host/env" fn input_length() u64;
 pub extern "extism:host/env" fn length(ExtismPointer) u64;
+pub extern "extism:host/env" fn length_unsafe(ExtismPointer) u64;
 pub extern "extism:host/env" fn alloc(u64) ExtismPointer;
 pub extern "extism:host/env" fn free(ExtismPointer) void;
 pub extern "extism:host/env" fn input_load_u8(ExtismPointer) u8;
