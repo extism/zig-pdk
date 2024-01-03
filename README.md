@@ -299,7 +299,7 @@ export fn http_get() i32 {
 }
 ```
 
-By default, Extism modules cannot make HTTP requests unless you specify which hosts it can connect to. You can use `--alow-host` in the Extism CLI to set this:
+By default, Extism modules cannot make HTTP requests unless you specify which hosts it can connect to. You can use `--allow-host` in the Extism CLI to set this:
 
 ```
 extism call ./zig-out/bin/my-plugin.wasm http_get --allow-host='*.typicode.com'
