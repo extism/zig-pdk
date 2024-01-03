@@ -69,7 +69,6 @@ pub const Plugin = struct {
         const c_len = @as(u64, data.len);
         const offset = extism.alloc(c_len);
         const memory = Memory.init(offset, c_len);
-        defer memory.free();
         memory.store(data);
         extism.output_set(offset, c_len);
     }
@@ -84,7 +83,6 @@ pub const Plugin = struct {
         const c_len = @as(u64, data.len);
         const offset = extism.alloc(c_len);
         const memory = Memory.init(offset, c_len);
-        defer memory.free();
         memory.store(data);
         extism.error_set(offset);
     }
