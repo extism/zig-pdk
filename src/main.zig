@@ -69,7 +69,6 @@ pub const Plugin = struct {
         const c_len = @as(u64, data.len);
         const offset = extism.alloc(c_len);
         const memory = Memory.init(offset, c_len);
-        defer memory.free();
         memory.store(data);
         extism.output_set(offset, c_len);
     }
@@ -84,7 +83,6 @@ pub const Plugin = struct {
         const c_len = @as(u64, data.len);
         const offset = extism.alloc(c_len);
         const memory = Memory.init(offset, c_len);
-        defer memory.free();
         memory.store(data);
         extism.error_set(offset);
     }
@@ -185,11 +183,10 @@ pub const Plugin = struct {
         };
         defer req_body.free();
         const offset = extism.http_request(req.offset, req_body.offset);
-        const length = extism.length(offset);
+        const length = extism.length_unsafe(offset);
         const status: u16 = @intCast(extism.http_status_code());
 
         const mem = Memory.init(offset, length);
-        defer mem.free();
         return http.HttpResponse{
             .memory = mem,
             .status = status,
