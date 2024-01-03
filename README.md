@@ -5,20 +5,32 @@ This library can be used to write [Extism Plug-ins](https://extism.org/docs/conc
 
 ## Install
 
-Generate a `exe` project with Zig:
+Create a new Zig project:
 
 ```bash
 mkdir my-plugin
-cd ./my-plugin
-zig init-exe
+cd my-plugin
+zig init
 ```
 
 Add the library as a dependency:
 
-```bash
-mkdir -p libs
-cd libs
-git clone https://github.com/extism/zig-pdk.git
+```zig
+// build.zig.zon
+
+.{
+    .name = "my-plugin",
+    .version = "0.0.0",
+
+    .dependencies = .{
+        .extism_pdk = .{
+            .url = "https://github.com/extism/zig-pdk/archive/<git-ref-here>.tar.gz",
+        },
+    },
+
+    .paths = .{""},
+}
+
 ```
 
 Change your `build.zig` so that it references `extism-pdk`:
@@ -39,24 +51,25 @@ pub fn build(b: *std.Build) void {
     const optimize = b.standardOptimizeOption(.{});
     const target = b.standardTargetOptions(.{
         .default_target = .{ .abi = .musl, .os_tag = .freestanding, .cpu_arch = .wasm32 },
+        // If you need to include WASI, update the .os_tag above to .wasi:
+        // .default_target = .{ .abi = .musl, .os_tag = .wasi, .cpu_arch = .wasm32 },
     });
 
-    const pdk_module = b.addModule("extism-pdk", .{
-        .source_file = .{ .path = "libs/zig-pdk/src/main.zig" },
-    });
-
-    var basic_example = b.addExecutable(.{
+    const pdk_module = b.dependency("extism_pdk", .{ .target = target, .optimize = optimize }).module("extism-pdk");
+    var plugin = b.addExecutable(.{
         .name = "my-plugin",
         .root_source_file = .{ .path = "src/main.zig" },
         .target = target,
         .optimize = optimize,
     });
-    basic_example.addModule("extism-pdk", pdk_module);
-    basic_example.rdynamic = true;
+    plugin.addModule("extism-pdk", pdk_module);
+    plugin.rdynamic = true;
+    // If you plan to use a "command"-style WASI module, delete this so _start is exported as the entrypoint
+    plugin.entry = .disabled; 
 
-    b.installArtifact(basic_example);
-    const basic_example_step = b.step("my-plugin", "Build my-plugin");
-    basic_example_step.dependOn(b.getInstallStep());
+    b.installArtifact(plugin);
+    const plugin_step = b.step("my-plugin", "Build my-plugin");
+    plugin_step.dependOn(b.getInstallStep());
 }
 ```
 
@@ -81,6 +94,9 @@ export fn greet() i32 {
     return 0;
 }
 ```
+
+> Note: if you started with the generated project files from `zig init`, you should delete `src/root.zig`
+and any references to it if they are in your `build.zig` file.
 
 Then run:
 ```sh
@@ -260,6 +276,8 @@ extism call ./zig-out/bin/my-plugin.wasm log_stuff --log-level=debug
 Sometimes it is useful to let a plug-in [make HTTP calls](https://pkg.go.dev/github.com/extism/go-pdk#HTTPRequest.Send). [See this example](example/http.go)
 
 ```zig
+const http = extism_pdk.http;
+
 export fn http_get() i32 {
     const plugin = Plugin.init(allocator);
     // create an HTTP request via Extism built-in function (doesn't require WASI)
