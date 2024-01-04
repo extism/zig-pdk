@@ -70,8 +70,34 @@ export fn http_get() i32 {
     const res = plugin.request(req, null) catch unreachable;
     defer res.deinit();
 
+    if (res.status != 200) {
+        plugin.setError("request failed");
+        return @as(i32, res.status);
+    }
+
+    // get the bytes for the res body
+    const body = res.body(allocator) catch unreachable;
+    // => { "userId": 1, "id": 1, "title": "delectus aut autem", "completed": false }
+    const Todo = struct {
+        userId: u32,
+        id: u32,
+        title: []const u8,
+        completed: bool,
+    };
+    const todo = std.json.parseFromSlice(Todo, allocator, body, .{}) catch |err| {
+        plugin.setError(std.fmt.allocPrint(allocator, "parse error: {any}", .{err}) catch unreachable);
+        return 1;
+    };
+    defer todo.deinit();
+
+    const t = todo.value;
+    const tmpl = "[id={d}] '{s}' by user={d} is complete: {any}\n";
+    const args = .{ t.id, t.title, t.userId, t.completed };
+    const output = std.fmt.allocPrint(allocator, tmpl, args) catch unreachable;
+    const outMem = plugin.allocateBytes(output);
+
     // `outputMemory` provides a zero-copy way to write plugin data back to the host
-    plugin.outputMemory(res.memory);
+    plugin.outputMemory(outMem);
 
     return 0;
 }
@@ -104,7 +130,6 @@ export fn add() i32 {
 
     const params = std.json.parseFromSlice(Add, allocator, input, std.json.ParseOptions{}) catch unreachable;
     const sum = Sum{ .sum = params.value.a + params.value.b };
-
     const output = std.json.stringifyAlloc(allocator, sum, std.json.StringifyOptions{}) catch unreachable;
     plugin.output(output);
     return 0;
