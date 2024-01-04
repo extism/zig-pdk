@@ -50,12 +50,18 @@ pub const Plugin = struct {
     }
 
     // IMPORTANT: It's the caller's responsibility to free the returned struct
-    pub fn getJson(self: Plugin, comptime T: type, options: std.json.ParseOptions) !Json(T) {
+    pub fn getJsonOpt(self: Plugin, comptime T: type, options: std.json.ParseOptions) !Json(T) {
         const bytes = try self.getInput();
         const out = try std.json.parseFromSlice(T, self.allocator, bytes, options);
         const FromJson = Json(T);
         const input = FromJson{ .parsed = out, .slice = bytes };
         return input;
+    }
+
+    pub fn getJson(self: Plugin, comptime T: type) !T {
+        const bytes = try self.getInput();
+        const out = try std.json.parseFromSlice(T, self.allocator, bytes, .{ .allocate = .alloc_always, .ignore_unknown_fields = true });
+        return out.value;
     }
 
     pub fn allocate(self: Plugin, length: usize) Memory {
