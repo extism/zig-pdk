@@ -63,7 +63,33 @@ const Input = struct {
 
 export fn json_input() i32 {
     const plugin = Plugin.init(allocator);
-    const json = plugin.getJson(Input, .{}) catch unreachable; // you must call .deinit() when done
+    // plugin.getJson() is opinionated about parsing and manages the alloc/free for you
+    // alternatively, plugin.getJsonOpt() let's you control parse options
+    const input = plugin.getJson(Input) catch unreachable;
+    const out = std.fmt.allocPrint(allocator, "Hello, {s}. You are {d} years old!", .{ input.name, input.age }) catch unreachable;
+
+    plugin.output(out);
+    return 0;
+}
+
+export fn json_input_opt() i32 {
+    const plugin = Plugin.init(allocator);
+    const json = plugin.getJsonOpt(Input, .{ .ignore_unknown_fields = false }) catch |err| {
+        switch (err) {
+            error.UnknownField => {
+                plugin.setError("JSON input contains unknown fields");
+                return 1;
+            },
+            error.DuplicateField => {
+                plugin.setError("JSON input contains duplicate fields");
+                return 1;
+            },
+            else => {
+                plugin.setError("some problem parsing JSON");
+                return 1;
+            },
+        }
+    };
     defer json.deinit();
 
     const input: Input = json.value();
