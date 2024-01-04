@@ -56,6 +56,42 @@ export fn count_vowels() i32 {
     return 0;
 }
 
+const Input = struct {
+    name: []const u8,
+    age: u16,
+};
+
+export fn json_input() i32 {
+    const plugin = Plugin.init(allocator);
+    const json = plugin.getJson(Input, .{}) catch unreachable; // you must call .deinit() when done
+    defer json.deinit();
+
+    const input: Input = json.value();
+    const out = std.fmt.allocPrint(allocator, "Hello, {s}. You are {d} years old!\n", .{ input.name, input.age }) catch unreachable;
+
+    plugin.output(out);
+    return 0;
+}
+
+const Result = struct {
+    things: [3][]const u8,
+};
+
+export fn json_output() i32 {
+    const plugin = Plugin.init(allocator);
+    const data = [_][]const u8{
+        "first thing",
+        "second thing",
+        "third thing",
+    };
+
+    const result = Result{ .things = data };
+
+    plugin.outputJson(result, .{}) catch unreachable;
+
+    return 0;
+}
+
 export fn http_get() i32 {
     const plugin = Plugin.init(allocator);
     // create an HTTP request via Extism built-in function (doesn't require WASI)
