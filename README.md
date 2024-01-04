@@ -271,7 +271,7 @@ extism call ./zig-out/bin/my-plugin.wasm log_stuff --log-level=debug
 
 ## HTTP
 
-Sometimes it is useful to let a plug-in [make HTTP calls](https://pkg.go.dev/github.com/extism/go-pdk#HTTPRequest.Send). [See this example](example/http.go)
+Sometimes it is useful to let a plug-in [make HTTP calls]. [see: Extism HTTP library](src/http.zig)
 
 ```zig
 const http = extism_pdk.http;
@@ -290,8 +290,37 @@ export fn http_get() i32 {
     const res = plugin.request(req, null) catch unreachable;
     defer res.deinit();
 
+    if (res.status != 200) {
+        plugin.setError("request failed");
+        return @as(i32, res.status);
+    }
+
+    // get the bytes for the response body
+    const body = res.body(allocator) catch unreachable;
+    // => { "userId": 1, "id": 1, "title": "delectus aut autem", "completed": false }
+    const Todo = struct {
+        userId: u32,
+        id: u32,
+        title: []const u8,
+        completed: bool,
+    };
+    const todo = std.json.parseFromSlice(Todo, allocator, body, .{}) catch |err| {
+        plugin.setError(std.fmt.allocPrint(allocator, "parse error: {any}", .{err}) catch unreachable);
+        return 1;
+    };
+    defer todo.deinit();
+
+    // format a string with the todo data
+    const t = todo.value;
+    const tmpl = "[id={d}] '{s}' by user={d} is complete: {any}\n";
+    const args = .{ t.id, t.title, t.userId, t.completed };
+    const output = std.fmt.allocPrint(allocator, tmpl, args) catch unreachable;
+
+    // allocate space for the output data
+    const outMem = plugin.allocateBytes(output);
+
     // `outputMemory` provides a zero-copy way to write plugin data back to the host
-    plugin.outputMemory(res.memory);
+    plugin.outputMemory(outMem);
 
     return 0;
 }

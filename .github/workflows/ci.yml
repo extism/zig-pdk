@@ -35,7 +35,7 @@ jobs:
 
           TEST=$(extism call zig-out/bin/basic-example.wasm http_get --allow-host '*')
           echo $TEST
-          echo $TEST | grep '"userId": 1'
+          echo $TEST | grep 'user=1'
 
           TEST=$(extism call zig-out/bin/basic-example.wasm greet --config user=Benjamin)
           echo $TEST
