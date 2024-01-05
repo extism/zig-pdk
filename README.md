@@ -176,6 +176,28 @@ export fn add() i32 {
 }
 ```
 
+To use a json helper, you can accomplish the same as the above with: 
+
+```zig
+export fn add() i32 {
+    const Add = struct {
+        a: i32,
+        b: i32,
+    };
+
+    const Sum = struct {
+        sum: i32,
+    };
+
+    const plugin = Plugin.init(allocator);
+    // automatically deserialize & alloc/free the json input to `Add` struct
+    const add = plugin.getJson(Add) catch unreachable;
+    const sum = Sum{ .sum = add.a + add.b };
+    // automatically serialize and alloc/free the `Sum` struct to json and send it to the output
+    plugin.outputJson(sum, .{}) catch unreachable;
+    return 0;
+```
+
 ```bash
 extism call ./zig-out/bin/my-plugin.wasm add --input='{"a": 20, "b": 21}'
 # => {"sum":41}
