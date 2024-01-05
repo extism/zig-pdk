@@ -3,7 +3,6 @@ const extism_pdk = @import("extism-pdk");
 const Plugin = extism_pdk.Plugin;
 const http = extism_pdk.http;
 
-pub fn main() void {}
 const allocator = std.heap.wasm_allocator;
 
 // define some type to write as output from the plugin back to the host
@@ -52,6 +51,68 @@ export fn count_vowels() i32 {
     // write the plugin data back to the host
     plugin.output(output);
     plugin.log(.Debug, "plugin output");
+
+    return 0;
+}
+
+const Input = struct {
+    name: []const u8,
+    age: u16,
+};
+
+export fn json_input() i32 {
+    const plugin = Plugin.init(allocator);
+    // plugin.getJson() is opinionated about parsing and manages the alloc/free for you
+    // alternatively, plugin.getJsonOpt() let's you control parse options
+    const input = plugin.getJson(Input) catch unreachable;
+    const out = std.fmt.allocPrint(allocator, "Hello, {s}. You are {d} years old!", .{ input.name, input.age }) catch unreachable;
+
+    plugin.output(out);
+    return 0;
+}
+
+export fn json_input_opt() i32 {
+    const plugin = Plugin.init(allocator);
+    const json = plugin.getJsonOpt(Input, .{ .ignore_unknown_fields = false }) catch |err| {
+        switch (err) {
+            error.UnknownField => {
+                plugin.setError("JSON input contains unknown fields");
+                return 1;
+            },
+            error.DuplicateField => {
+                plugin.setError("JSON input contains duplicate fields");
+                return 1;
+            },
+            else => {
+                plugin.setError("some problem parsing JSON");
+                return 1;
+            },
+        }
+    };
+    defer json.deinit();
+
+    const input: Input = json.value();
+    const out = std.fmt.allocPrint(allocator, "Hello, {s}. You are {d} years old!\n", .{ input.name, input.age }) catch unreachable;
+
+    plugin.output(out);
+    return 0;
+}
+
+const Result = struct {
+    things: [3][]const u8,
+};
+
+export fn json_output() i32 {
+    const plugin = Plugin.init(allocator);
+    const data = [_][]const u8{
+        "first thing",
+        "second thing",
+        "third thing",
+    };
+
+    const result = Result{ .things = data };
+
+    plugin.outputJson(result, .{}) catch unreachable;
 
     return 0;
 }

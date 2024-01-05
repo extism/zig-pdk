@@ -5,6 +5,21 @@ pub const http = @import("http.zig");
 
 const LogLevel = enum { Info, Debug, Warn, Error };
 
+pub fn Json(comptime T: type) type {
+    return struct {
+        parsed: std.json.Parsed(T),
+        slice: []const u8,
+
+        pub fn value(self: @This()) T {
+            return self.parsed.value;
+        }
+
+        pub fn deinit(self: @This()) void {
+            self.parsed.deinit();
+        }
+    };
+}
+
 pub const Plugin = struct {
     allocator: std.mem.Allocator,
 
@@ -32,6 +47,21 @@ pub const Plugin = struct {
             i += 8;
         }
         return buf;
+    }
+
+    // IMPORTANT: It's the caller's responsibility to free the returned struct
+    pub fn getJsonOpt(self: Plugin, comptime T: type, options: std.json.ParseOptions) !Json(T) {
+        const bytes = try self.getInput();
+        const out = try std.json.parseFromSlice(T, self.allocator, bytes, options);
+        const FromJson = Json(T);
+        const input = FromJson{ .parsed = out, .slice = bytes };
+        return input;
+    }
+
+    pub fn getJson(self: Plugin, comptime T: type) !T {
+        const bytes = try self.getInput();
+        const out = try std.json.parseFromSlice(T, self.allocator, bytes, .{ .allocate = .alloc_always, .ignore_unknown_fields = true });
+        return out.value;
     }
 
     pub fn allocate(self: Plugin, length: usize) Memory {
@@ -71,6 +101,11 @@ pub const Plugin = struct {
         const memory = Memory.init(offset, c_len);
         memory.store(data);
         extism.output_set(offset, c_len);
+    }
+
+    pub fn outputJson(self: Plugin, T: anytype, options: std.json.StringifyOptions) !void {
+        const out = try std.json.stringifyAlloc(self.allocator, T, options);
+        self.output(out);
     }
 
     pub fn setErrorMemory(self: Plugin, mem: Memory) void {

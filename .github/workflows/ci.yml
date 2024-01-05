@@ -58,3 +58,10 @@ jobs:
           echo $TEST | grep 'A debug log!'
           echo $TEST | grep 'A warning log!'
           echo $TEST | grep 'An error log!'
+
+          TEST=$(extism call zig-out/bin/basic-example.wasm json_input --input '{"name": "Yoda", "age": 900}')
+          echo $TEST | grep 'Hello, Yoda. You are 900 years old!'
+
+          TEST=$(extism call zig-out/bin/basic-example.wasm json_output)
+          echo $TEST | grep '["first thing","second thing","third thing"]'
+
