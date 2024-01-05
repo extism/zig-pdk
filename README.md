@@ -25,6 +25,7 @@ Add the library as a dependency:
     .dependencies = .{
         .extism_pdk = .{
             .url = "https://github.com/extism/zig-pdk/archive/<git-ref-here>.tar.gz",
+            // .hash = "" (zig build will tell you what to put here)
         },
     },
 
@@ -42,7 +43,7 @@ const builtin = @import("builtin");
 pub fn build(b: *std.Build) void {
     comptime {
         const current_zig = builtin.zig_version;
-        const min_zig = std.SemanticVersion.parse("0.12.0-dev.64+b835fd90c") catch unreachable; // std.json.ArrayHashMap
+        const min_zig = std.SemanticVersion.parse("0.12.0-dev.2030+2ac315c24") catch unreachable;
         if (current_zig.order(min_zig) == .lt) {
             @compileError(std.fmt.comptimePrint("Your Zig version v{} does not meet the minimum build requirement of v{}", .{ current_zig, min_zig }));
         }
@@ -50,24 +51,26 @@ pub fn build(b: *std.Build) void {
 
     const optimize = b.standardOptimizeOption(.{});
     const target = b.standardTargetOptions(.{
+        // if you're using WASI, change the .os_tag to .wasi
         .default_target = .{ .abi = .musl, .os_tag = .freestanding, .cpu_arch = .wasm32 },
-        // If you need to include WASI, update the `.os_tag` field above to .wasi:
-        // .default_target = .{ .abi = .musl, .os_tag = .wasi, .cpu_arch = .wasm32 },
     });
 
-    const pdk_module = b.dependency("extism_pdk", .{ .target = target, .optimize = optimize }).module("extism-pdk");
-    var plugin = b.addExecutable(.{
-        .name = "my-plugin",
-        .root_source_file = .{ .path = "src/main.zig" },
+    var basic_example = b.addExecutable(.{
+        .name = "basic-example",
+        .root_source_file = .{ .path = "examples/basic.zig" },
         .target = target,
         .optimize = optimize,
     });
-    plugin.addModule("extism-pdk", pdk_module);
-    plugin.rdynamic = true;
+    basic_example.rdynamic = true;
+    basic_example.entry = .disabled; // or add an empty `pub fn main() void {}` to your code
+    const pdk_module = b.addModule("extism-pdk", .{
+        .root_source_file = .{ .path = "src/main.zig" },
+    });
+    basic_example.root_module.addImport("extism-pdk", pdk_module);
 
-    b.installArtifact(plugin);
-    const plugin_step = b.step("my-plugin", "Build my-plugin");
-    plugin_step.dependOn(b.getInstallStep());
+    b.installArtifact(basic_example);
+    const basic_example_step = b.step("basic_example", "Build basic_example");
+    basic_example_step.dependOn(b.getInstallStep());
 }
 ```
 

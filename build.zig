@@ -4,7 +4,7 @@ const builtin = @import("builtin");
 pub fn build(b: *std.Build) void {
     comptime {
         const current_zig = builtin.zig_version;
-        const min_zig = std.SemanticVersion.parse("0.12.0-dev.2030+2ac315c24") catch unreachable; // std.json.ArrayHashMap
+        const min_zig = std.SemanticVersion.parse("0.12.0-dev.2030+2ac315c24") catch unreachable;
         if (current_zig.order(min_zig) == .lt) {
             @compileError(std.fmt.comptimePrint("Your Zig version v{} does not meet the minimum build requirement of v{}", .{ current_zig, min_zig }));
         }
@@ -15,10 +15,6 @@ pub fn build(b: *std.Build) void {
         .default_target = .{ .abi = .musl, .os_tag = .freestanding, .cpu_arch = .wasm32 },
     });
 
-    const pdk_module = b.addModule("extism-pdk", .{
-        .root_source_file = .{ .path = "src/main.zig" },
-    });
-
     var basic_example = b.addExecutable(.{
         .name = "basic-example",
         .root_source_file = .{ .path = "examples/basic.zig" },
@@ -26,6 +22,10 @@ pub fn build(b: *std.Build) void {
         .optimize = optimize,
     });
     basic_example.rdynamic = true;
+    basic_example.entry = .disabled; // or, add an empty `pub fn main() void {}` in your code
+    const pdk_module = b.addModule("extism-pdk", .{
+        .root_source_file = .{ .path = "src/main.zig" },
+    });
     basic_example.root_module.addImport("extism-pdk", pdk_module);
 
     b.installArtifact(basic_example);
