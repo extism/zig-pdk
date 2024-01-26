@@ -13,64 +13,37 @@ cd my-plugin
 zig init
 ```
 
-Add the library as a dependency:
+Add the library as a dependency. Git ref should be the hash of the latest commit:
 
-```zig
-// build.zig.zon
-
-.{
-    .name = "my-plugin",
-    .version = "0.0.0",
-
-    .dependencies = .{
-        .extism_pdk = .{
-            .url = "https://github.com/extism/zig-pdk/archive/<git-ref-here>.tar.gz",
-            // .hash = "" (zig build will tell you what to put here)
-        },
-    },
-
-    .paths = .{""},
-}
-
+```sh
+zig fetch --save https://github.com/extism/zig-pdk/archive/<git-ref-here>.tar.gz
 ```
 
 Change your `build.zig` so that it references `extism-pdk`:
 
 ```zig
 const std = @import("std");
-const builtin = @import("builtin");
 
 pub fn build(b: *std.Build) void {
-    comptime {
-        const current_zig = builtin.zig_version;
-        const min_zig = std.SemanticVersion.parse("0.12.0-dev.2030+2ac315c24") catch unreachable;
-        if (current_zig.order(min_zig) == .lt) {
-            @compileError(std.fmt.comptimePrint("Your Zig version v{} does not meet the minimum build requirement of v{}", .{ current_zig, min_zig }));
-        }
-    }
-
     const optimize = b.standardOptimizeOption(.{});
     const target = b.standardTargetOptions(.{
         // if you're using WASI, change the .os_tag to .wasi
         .default_target = .{ .abi = .musl, .os_tag = .freestanding, .cpu_arch = .wasm32 },
     });
-
-    var basic_example = b.addExecutable(.{
-        .name = "basic-example",
-        .root_source_file = .{ .path = "examples/basic.zig" },
+    const pdk_module = b.dependency("extism-pdk", .{ .target = target, .optimize = optimize }).module("extism-pdk");
+    var plugin = b.addExecutable(.{
+        .name = "my-plugin",
+        .root_source_file = .{ .path = "src/main.zig" },
         .target = target,
         .optimize = optimize,
     });
-    basic_example.rdynamic = true;
-    basic_example.entry = .disabled; // or add an empty `pub fn main() void {}` to your code
-    const pdk_module = b.addModule("extism-pdk", .{
-        .root_source_file = .{ .path = "src/main.zig" },
-    });
-    basic_example.root_module.addImport("extism-pdk", pdk_module);
+    plugin.rdynamic = true;
+    plugin.entry = .disabled; // or add an empty `pub fn main() void {}` to your code
+    plugin.root_module.addImport("extism-pdk", pdk_module);
 
-    b.installArtifact(basic_example);
-    const basic_example_step = b.step("basic_example", "Build basic_example");
-    basic_example_step.dependOn(b.getInstallStep());
+    b.installArtifact(plugin);
+    const plugin_example_step = b.step("my-plugin", "Build my-plugin");
+    plugin_example_step.dependOn(b.getInstallStep());
 }
 ```
 
