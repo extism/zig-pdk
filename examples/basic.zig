@@ -221,3 +221,48 @@ export fn log_stuff() i32 {
 
     return 0;
 }
+
+const Inner = struct {
+    name: []const u8,
+    size: usize,
+};
+
+const Outer = struct {
+    inner: []Inner,
+    id: i32,
+};
+
+const InnerCount = struct {
+    innerCount: u8,
+};
+
+export fn nested_json() i32 {
+    const plugin = Plugin.init(allocator);
+
+    // get some JSON input, deserialized into InnerCount struct
+    const input = plugin.getJson(InnerCount) catch unreachable;
+
+    // create an instance of our Inner struct
+    const inner = Inner{
+        .name = "I'm the inner struct",
+        .size = @sizeOf(Inner),
+    };
+
+    // create the list of Inner to be used in the Outer struct
+    var innerForOuter = std.ArrayList(Inner).init(allocator);
+    defer innerForOuter.deinit();
+    // add Inner in the amount specified by the input
+    for (0..input.innerCount) |_| {
+        innerForOuter.append(inner) catch unreachable;
+    }
+
+    // create the Outer struct
+    const outer = Outer{
+        .inner = innerForOuter.items,
+        .id = 42,
+    };
+
+    // write the output using the Outer struct serialized to JSON
+    plugin.outputJson(outer, .{}) catch unreachable;
+    return 0;
+}

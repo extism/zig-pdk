@@ -65,3 +65,7 @@ jobs:
           TEST=$(extism call zig-out/bin/basic-example.wasm json_output)
           echo $TEST | grep '["first thing","second thing","third thing"]'
 
+          TEST=$(extism call zig-out/bin/basic-example.wasm nested_json --input '{"innerCount": 3}')
+          COUNT=$(echo $TEST | jq | grep "I'm the inner struct" | wc -l)
+          test $COUNT -eq 3
+
