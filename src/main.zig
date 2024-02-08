@@ -133,9 +133,7 @@ pub const Plugin = struct {
         }
         const memory = Memory.init(offset, c_len);
         defer memory.free();
-        const value = try self.allocator.alloc(u8, @intCast(c_len));
-        errdefer self.allocator.free(value);
-        memory.load(value);
+        const value = try memory.loadAlloc(self.allocator);
         return value;
     }
 
@@ -166,9 +164,8 @@ pub const Plugin = struct {
         }
         const memory = Memory.init(offset, c_len);
         defer memory.free();
-        const value = try self.allocator.alloc(u8, @intCast(c_len));
-        errdefer self.allocator.free(value);
-        memory.load(value);
+        defer memory.free();
+        const value = try memory.loadAlloc(self.allocator);
         return value;
     }
 
