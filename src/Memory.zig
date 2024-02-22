@@ -30,6 +30,12 @@ pub fn load(self: Self, buf: []u8) void {
     }
 }
 
+pub fn loadAlloc(self: Self, allocator: std.mem.Allocator) ![]u8 {
+    const out = try allocator.alloc(u8, @intCast(self.length));
+    self.load(out);
+    return out;
+}
+
 pub fn store(self: Self, buf: []const u8) void {
     const len = buf.len;
     var i: usize = 0;
