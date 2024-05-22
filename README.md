@@ -87,7 +87,7 @@ zig build
 ```
 
 This will put your compiled wasm in `zig-out/bin`. We can now test it using the
-[Extism CLI](https://github.com/extism/cli)'s `run` command:
+[Extism CLI](https://github.com/extism/cli)'s `call` command:
 
 ```bash
 extism call ./zig-out/bin/my-plugin.wasm greet --input "Benjamin"
