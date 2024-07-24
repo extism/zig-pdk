@@ -4,6 +4,7 @@ pub const ExtismLogLevel = enum(u8) { Error, Warn, Info, Debug, Trace };
 pub extern "extism:host/env" fn read(ExtismStream, ExtismHandle) i64;
 pub extern "extism:host/env" fn write(ExtismStream, ExtismHandle) i64;
 pub extern "extism:host/env" fn close(ExtismStream) void;
+pub extern "extism:host/env" fn bytes_remaining(ExtismStream) i64;
 pub extern "extism:host/env" fn stack_push() void;
 pub extern "extism:host/env" fn stack_pop() void;
 pub extern "extism:host/env" fn @"error"(ExtismHandle) void;
