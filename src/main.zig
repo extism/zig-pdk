@@ -1,14 +1,27 @@
 const std = @import("std");
 const extism = @import("ffi.zig");
-const Memory = @import("Memory.zig");
 pub const http = @import("http.zig");
 
-const LogLevel = enum { Info, Debug, Warn, Error };
+const LogLevel = extism.ExtismLogLevel;
+
+var vars: ?std.StringHashMap([]u8) = null;
+
+fn makeHandle(data: []const u8) extism.ExtismHandle {
+    const ptr: u64 = @intFromPtr(data.ptr);
+    const len: u64 = @intCast(data.len);
+    return (ptr << 32) | (len & 0xffffffff);
+}
+
+fn makeWriteHandle(data: []u8) extism.ExtismHandle {
+    const ptr: u64 = @intFromPtr(data.ptr);
+    const len: u64 = @intCast(data.len);
+    return (ptr << 32) | (len & 0xffffffff);
+}
 
 pub fn Json(comptime T: type) type {
     return struct {
         parsed: std.json.Parsed(T),
-        slice: []const u8,
+        slice: std.ArrayList(u8),
 
         pub fn value(self: @This()) T {
             return self.parsed.value;
@@ -16,6 +29,7 @@ pub fn Json(comptime T: type) type {
 
         pub fn deinit(self: @This()) void {
             self.parsed.deinit();
+            self.slice.deinit();
         }
     };
 }
@@ -30,29 +44,23 @@ pub const Plugin = struct {
     }
 
     // IMPORTANT: It's the caller's responsibility to free the returned slice
-    pub fn getInput(self: Plugin) ![]u8 {
-        const len = extism.input_length();
-        var buf = try self.allocator.alloc(u8, @intCast(len));
-        errdefer self.allocator.free(buf);
-        var i: usize = 0;
-        while (i < len) {
-            if (len - i < 8) {
-                buf[i] = extism.input_load_u8(@as(u64, i));
-                i += 1;
-                continue;
+    pub fn getInput(self: Plugin) !std.ArrayList(u8) {
+        var buf: [1024]u8 = undefined;
+        var dest = std.ArrayList(u8).init(self.allocator);
+        var n: i64 = 0;
+        while (n >= 0) {
+            n = extism.read(extism.ExtismStream.Input, makeWriteHandle(&buf));
+            if (n > 0) {
+                try dest.appendSlice(buf[0..@intCast(n)]);
             }
-
-            const x = extism.input_load_u64(@as(u64, i));
-            std.mem.writeInt(u64, buf[i..][0..8], x, std.builtin.Endian.little);
-            i += 8;
         }
-        return buf;
+        return dest;
     }
 
     // IMPORTANT: It's the caller's responsibility to free the returned struct
     pub fn getJsonOpt(self: Plugin, comptime T: type, options: std.json.ParseOptions) !Json(T) {
         const bytes = try self.getInput();
-        const out = try std.json.parseFromSlice(T, self.allocator, bytes, options);
+        const out = try std.json.parseFromSlice(T, self.allocator, bytes.items, options);
         const FromJson = Json(T);
         const input = FromJson{ .parsed = out, .slice = bytes };
         return input;
@@ -60,47 +68,15 @@ pub const Plugin = struct {
 
     pub fn getJson(self: Plugin, comptime T: type) !T {
         const bytes = try self.getInput();
-        const out = try std.json.parseFromSlice(T, self.allocator, bytes, .{ .allocate = .alloc_always, .ignore_unknown_fields = true });
+        defer bytes.deinit();
+        const out = try std.json.parseFromSlice(T, self.allocator, bytes.items, .{ .allocate = .alloc_always, .ignore_unknown_fields = true });
         return out.value;
-    }
-
-    pub fn allocate(self: Plugin, length: usize) Memory {
-        _ = self; // to make the interface consistent
-
-        const c_len = @as(u64, length);
-        const offset = extism.alloc(c_len);
-
-        return Memory.init(offset, c_len);
-    }
-
-    pub fn allocateBytes(self: Plugin, data: []const u8) Memory {
-        _ = self; // to make the interface consistent
-        const c_len = @as(u64, data.len);
-        const offset = extism.alloc(c_len);
-        const mem = Memory.init(offset, c_len);
-        mem.store(data);
-        return mem;
-    }
-
-    pub fn findMemory(self: Plugin, offset: u64) Memory {
-        _ = self; // to make the interface consistent
-
-        const length = extism.length(offset);
-        return Memory.init(offset, length);
-    }
-
-    pub fn outputMemory(self: Plugin, mem: Memory) void {
-        _ = self; // to make the interface consistent
-        extism.output_set(mem.offset, mem.length);
     }
 
     pub fn output(self: Plugin, data: []const u8) void {
         _ = self; // to make the interface consistent
-        const c_len = @as(u64, data.len);
-        const offset = extism.alloc(c_len);
-        const memory = Memory.init(offset, c_len);
-        memory.store(data);
-        extism.output_set(offset, c_len);
+        _ = extism.write(extism.ExtismStream.Output, makeHandle(data));
+        // TODO: handle failed/short write
     }
 
     pub fn outputJson(self: Plugin, T: anytype, options: std.json.StringifyOptions) !void {
@@ -108,69 +84,39 @@ pub const Plugin = struct {
         self.output(out);
     }
 
-    pub fn setErrorMemory(self: Plugin, mem: Memory) void {
+    pub fn throwError(self: Plugin, data: []const u8) void {
         _ = self; // to make the interface consistent
-        extism.error_set(mem.offset);
+        extism.@"error"(makeHandle(data));
     }
 
-    pub fn setError(self: Plugin, data: []const u8) void {
-        _ = self; // to make the interface consistent
-        const c_len = @as(u64, data.len);
-        const offset = extism.alloc(c_len);
-        const memory = Memory.init(offset, c_len);
-        memory.store(data);
-        extism.error_set(offset);
-    }
-
-    /// IMPORTANT: it's the caller's responsibility to free the returned string
     pub fn getConfig(self: Plugin, key: []const u8) !?[]u8 {
-        const key_mem = self.allocateBytes(key);
-        defer key_mem.free();
-        const offset = extism.config_get(key_mem.offset);
-        const c_len = extism.length(offset);
-        if (offset == 0 or c_len == 0) {
+        const keyHandle = makeHandle(key);
+        const length = extism.config_length(keyHandle);
+        if (length < 0) {
             return null;
         }
-        const memory = Memory.init(offset, c_len);
-        defer memory.free();
-        const value = try memory.loadAlloc(self.allocator);
-        return value;
-    }
 
-    pub fn logMemory(self: Plugin, level: LogLevel, memory: Memory) void {
-        _ = self; // to make the interface consistent
-        switch (level) {
-            .Info => extism.log_info(memory.offset),
-            .Debug => extism.log_debug(memory.offset),
-            .Warn => extism.log_warn(memory.offset),
-            .Error => extism.log_error(memory.offset),
-        }
+        const data = try self.allocator.alloc(u8, @intCast(length));
+        _ = extism.config_read(keyHandle, makeWriteHandle(data));
+        return data;
     }
 
     pub fn log(self: Plugin, level: LogLevel, data: []const u8) void {
-        const mem = self.allocateBytes(data);
-        defer mem.free();
-        self.logMemory(level, mem);
+        _ = self; // to make the interface consistent
+        extism.log(level, makeHandle(data));
     }
 
-    /// IMPORTANT: it's the caller's responsibility to free the returned string
-    pub fn getVar(self: Plugin, key: []const u8) !?[]u8 {
-        const key_mem = self.allocateBytes(key);
-        defer key_mem.free();
-        const offset = extism.var_get(key_mem.offset);
-        const c_len = extism.length(offset);
-        if (offset == 0 or c_len == 0) {
+    pub fn getVar(self: Plugin, key: []const u8) ?[]u8 {
+        _ = self;
+        if (vars) |v| {
+            return v.get(key);
+        } else {
             return null;
         }
-        const memory = Memory.init(offset, c_len);
-        defer memory.free();
-        defer memory.free();
-        const value = try memory.loadAlloc(self.allocator);
-        return value;
     }
 
     pub fn getVarInt(self: Plugin, comptime T: type, key: []const u8) !?T {
-        const result = try self.getVar(key);
+        const result = self.getVar(key);
 
         if (result) |buf| {
             return std.mem.readPackedInt(T, buf, 0, .little);
@@ -179,12 +125,16 @@ pub const Plugin = struct {
         return null;
     }
 
-    pub fn setVar(self: Plugin, key: []const u8, value: []const u8) void {
-        const key_mem = self.allocateBytes(key);
-        defer key_mem.free();
-        const val_mem = self.allocateBytes(value);
-        defer val_mem.free();
-        extism.var_set(key_mem.offset, val_mem.offset);
+    pub fn setVar(self: Plugin, key: []const u8, value: []const u8) !void {
+        if (vars == null) {
+            vars = std.StringHashMap([]u8).init(self.allocator);
+        }
+        if (vars) |*v| {
+            if (v.fetchRemove(key)) |_| {
+                // self.allocator.free(x);
+            }
+            try v.put(try self.allocator.dupe(u8, key), try self.allocator.dupe(u8, value));
+        }
     }
 
     pub fn setVarInt(self: Plugin, comptime T: type, key: []const u8, value: T) !void {
@@ -192,35 +142,32 @@ pub const Plugin = struct {
         defer self.allocator.free(buffer);
         std.mem.writePackedInt(T, buffer, 0, value, .little);
 
-        self.setVar(key, buffer);
+        try self.setVar(key, buffer);
     }
 
     pub fn removeVar(self: Plugin, key: []const u8) void {
-        const mem = self.allocateBytes(key);
-        defer mem.free();
-        extism.var_set(mem.offset, 0);
+        if (vars) |v| {
+            if (v.fetchRemove(key)) |x| {
+                self.allocator.free(x);
+            }
+        }
     }
 
     pub fn request(self: Plugin, http_request: http.HttpRequest, body: ?[]const u8) !http.HttpResponse {
         const json = try std.json.stringifyAlloc(self.allocator, http_request, .{ .emit_null_optional_fields = false });
         defer self.allocator.free(json);
-        const req = self.allocateBytes(json);
-        defer req.free();
         const req_body = b: {
             if (body) |bdy| {
-                break :b self.allocateBytes(bdy);
+                break :b makeHandle(bdy);
             } else {
-                break :b self.allocate(0);
+                break :b 0;
             }
         };
-        defer req_body.free();
-        const offset = extism.http_request(req.offset, req_body.offset);
-        const length = extism.length_unsafe(offset);
+        const length = extism.http_request(makeHandle(json), req_body);
         const status: u16 = @intCast(extism.http_status_code());
 
-        const mem = Memory.init(offset, length);
         return http.HttpResponse{
-            .memory = mem,
+            .length = @intCast(length),
             .status = status,
         };
     }

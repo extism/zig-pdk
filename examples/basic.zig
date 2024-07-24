@@ -12,14 +12,14 @@ const Output = struct {
     a: []const u8,
 };
 
-export fn count_vowels() i32 {
+export fn count_vowels() void {
     const plugin = Plugin.init(allocator);
     plugin.log(.Debug, "plugin start");
     const input = plugin.getInput() catch unreachable;
-    defer allocator.free(input);
+    defer input.deinit();
     plugin.log(.Debug, "plugin input");
     var vowelsCount: i32 = 0;
-    for (input) |char| {
+    for (input.items) |char| {
         switch (char) {
             'A', 'I', 'E', 'O', 'U', 'a', 'e', 'i', 'o', 'u' => vowelsCount += 1,
             else => {},
@@ -27,16 +27,16 @@ export fn count_vowels() i32 {
     }
 
     // use persistent variables owned by a plugin instance (stored in-memory between function calls)
-    const var_a_optional = plugin.getVar("a") catch unreachable;
+    const var_a_optional = plugin.getVar("a");
     plugin.log(.Debug, "plugin var get");
 
     if (var_a_optional == null) {
-        plugin.setVar("a", "this is var a");
+        plugin.setVar("a", "this is var a") catch unreachable;
         plugin.log(.Debug, "plugin var set");
     } else {
         allocator.free(var_a_optional.?);
     }
-    const var_a = plugin.getVar("a") catch unreachable orelse "";
+    const var_a = plugin.getVar("a") orelse "";
     defer allocator.free(var_a);
 
     // access host-provided configuration (key/value)
@@ -52,7 +52,7 @@ export fn count_vowels() i32 {
     plugin.output(output);
     plugin.log(.Debug, "plugin output");
 
-    return 0;
+    plugin.log(.Debug, "plugin var set");
 }
 
 const Input = struct {
@@ -60,7 +60,7 @@ const Input = struct {
     age: u16,
 };
 
-export fn json_input() i32 {
+export fn json_input() void {
     const plugin = Plugin.init(allocator);
     // plugin.getJson() is opinionated about parsing and manages the alloc/free for you
     // alternatively, plugin.getJsonOpt() let's you control parse options
@@ -68,26 +68,23 @@ export fn json_input() i32 {
     const out = std.fmt.allocPrint(allocator, "Hello, {s}. You are {d} years old!", .{ input.name, input.age }) catch unreachable;
 
     plugin.output(out);
-    return 0;
 }
 
-export fn json_input_opt() i32 {
+export fn json_input_opt() void {
     const plugin = Plugin.init(allocator);
     const json = plugin.getJsonOpt(Input, .{ .ignore_unknown_fields = false }) catch |err| {
         switch (err) {
             error.UnknownField => {
-                plugin.setError("JSON input contains unknown fields");
-                return 1;
+                plugin.throwError("JSON input contains unknown fields");
             },
             error.DuplicateField => {
-                plugin.setError("JSON input contains duplicate fields");
-                return 1;
+                plugin.throwError("JSON input contains duplicate fields");
             },
             else => {
-                plugin.setError("some problem parsing JSON");
-                return 1;
+                plugin.throwError("some problem parsing JSON");
             },
         }
+        return;
     };
     defer json.deinit();
 
@@ -95,7 +92,6 @@ export fn json_input_opt() i32 {
     const out = std.fmt.allocPrint(allocator, "Hello, {s}. You are {d} years old!\n", .{ input.name, input.age }) catch unreachable;
 
     plugin.output(out);
-    return 0;
 }
 
 const Result = struct {
@@ -117,7 +113,7 @@ export fn json_output() i32 {
     return 0;
 }
 
-export fn http_get() i32 {
+export fn http_get() void {
     const plugin = Plugin.init(allocator);
     // create an HTTP request via Extism built-in function (doesn't require WASI)
     var req = http.HttpRequest.init("GET", "https://jsonplaceholder.typicode.com/todos/1");
@@ -129,11 +125,10 @@ export fn http_get() i32 {
 
     // make the request and get the response back
     const res = plugin.request(req, null) catch unreachable;
-    defer res.deinit();
+    // defer res.deinit();
 
     if (res.status != 200) {
-        plugin.setError("request failed");
-        return @as(i32, res.status);
+        plugin.throwError("request failed");
     }
 
     // get the bytes for the res body
@@ -146,8 +141,8 @@ export fn http_get() i32 {
         completed: bool,
     };
     const todo = std.json.parseFromSlice(Todo, allocator, body, .{}) catch |err| {
-        plugin.setError(std.fmt.allocPrint(allocator, "parse error: {any}", .{err}) catch unreachable);
-        return 1;
+        plugin.throwError(std.fmt.allocPrint(allocator, "parse error: {any}", .{err}) catch unreachable);
+        return;
     };
     defer todo.deinit();
 
@@ -155,27 +150,22 @@ export fn http_get() i32 {
     const tmpl = "[id={d}] '{s}' by user={d} is complete: {any}\n";
     const args = .{ t.id, t.title, t.userId, t.completed };
     const output = std.fmt.allocPrint(allocator, tmpl, args) catch unreachable;
-    const outMem = plugin.allocateBytes(output);
 
-    // `outputMemory` provides a zero-copy way to write plugin data back to the host
-    plugin.outputMemory(outMem);
-
-    return 0;
+    plugin.output(output);
 }
 
-export fn greet() i32 {
+export fn greet() void {
     const plugin = Plugin.init(allocator);
     const user = plugin.getConfig("user") catch unreachable orelse {
-        plugin.setError("This plug-in requires a 'user' key in the config");
-        return 1;
+        plugin.throwError("This plug-in requires a 'user' key in the config");
+        return;
     };
 
     const output = std.fmt.allocPrint(allocator, "Hello, {s}!", .{user}) catch unreachable;
     plugin.output(output);
-    return 0;
 }
 
-export fn add() i32 {
+export fn add() void {
     const Add = struct {
         a: i32,
         b: i32,
@@ -187,19 +177,18 @@ export fn add() i32 {
 
     const plugin = Plugin.init(allocator);
     const input = plugin.getInput() catch unreachable;
-    defer allocator.free(input);
+    defer input.deinit();
 
-    const params = std.json.parseFromSlice(Add, allocator, input, std.json.ParseOptions{}) catch unreachable;
+    const params = std.json.parseFromSlice(Add, allocator, input.items, std.json.ParseOptions{}) catch unreachable;
     const sum = Sum{ .sum = params.value.a + params.value.b };
     const output = std.json.stringifyAlloc(allocator, sum, std.json.StringifyOptions{}) catch unreachable;
     plugin.output(output);
-    return 0;
 }
 
-export fn count() i32 {
+export fn count() void {
     const plugin = Plugin.init(allocator);
     const input = plugin.getInput() catch unreachable;
-    defer allocator.free(input);
+    defer input.deinit();
 
     var c = plugin.getVarInt(i32, "count") catch unreachable orelse 0;
 
@@ -209,17 +198,14 @@ export fn count() i32 {
 
     const output = std.fmt.allocPrint(allocator, "{d}", .{c}) catch unreachable;
     plugin.output(output);
-    return 0;
 }
 
-export fn log_stuff() i32 {
+export fn log_stuff() void {
     const plugin = Plugin.init(allocator);
     plugin.log(.Info, "An info log!");
     plugin.log(.Debug, "A debug log!");
     plugin.log(.Warn, "A warning log!");
     plugin.log(.Error, "An error log!");
-
-    return 0;
 }
 
 const Inner = struct {
@@ -236,7 +222,7 @@ const InnerCount = struct {
     innerCount: u8,
 };
 
-export fn nested_json() i32 {
+export fn nested_json() void {
     const plugin = Plugin.init(allocator);
 
     // get some JSON input, deserialized into InnerCount struct
@@ -264,5 +250,4 @@ export fn nested_json() i32 {
 
     // write the output using the Outer struct serialized to JSON
     plugin.outputJson(outer, .{}) catch unreachable;
-    return 0;
 }
