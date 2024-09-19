@@ -17,7 +17,7 @@ pub const HttpResponse = struct {
         self.memory.free();
     }
 
-    pub fn status(self: HttpResponse) u16 {
+    pub fn statusCode(self: HttpResponse) u16 {
         return self.status;
     }
 };

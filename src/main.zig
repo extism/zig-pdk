@@ -125,7 +125,6 @@ pub const Plugin = struct {
     /// IMPORTANT: it's the caller's responsibility to free the returned string
     pub fn getConfig(self: Plugin, key: []const u8) !?[]u8 {
         const key_mem = self.allocateBytes(key);
-        defer key_mem.free();
         const offset = extism.config_get(key_mem.offset);
         const c_len = extism.length(offset);
         if (offset == 0 or c_len == 0) {
@@ -149,21 +148,18 @@ pub const Plugin = struct {
 
     pub fn log(self: Plugin, level: LogLevel, data: []const u8) void {
         const mem = self.allocateBytes(data);
-        defer mem.free();
         self.logMemory(level, mem);
     }
 
     /// IMPORTANT: it's the caller's responsibility to free the returned string
     pub fn getVar(self: Plugin, key: []const u8) !?[]u8 {
         const key_mem = self.allocateBytes(key);
-        defer key_mem.free();
         const offset = extism.var_get(key_mem.offset);
         const c_len = extism.length(offset);
         if (offset == 0 or c_len == 0) {
             return null;
         }
         const memory = Memory.init(offset, c_len);
-        defer memory.free();
         defer memory.free();
         const value = try memory.loadAlloc(self.allocator);
         return value;
@@ -181,9 +177,7 @@ pub const Plugin = struct {
 
     pub fn setVar(self: Plugin, key: []const u8, value: []const u8) void {
         const key_mem = self.allocateBytes(key);
-        defer key_mem.free();
         const val_mem = self.allocateBytes(value);
-        defer val_mem.free();
         extism.var_set(key_mem.offset, val_mem.offset);
     }
 
@@ -197,7 +191,6 @@ pub const Plugin = struct {
 
     pub fn removeVar(self: Plugin, key: []const u8) void {
         const mem = self.allocateBytes(key);
-        defer mem.free();
         extism.var_set(mem.offset, 0);
     }
 
@@ -205,7 +198,6 @@ pub const Plugin = struct {
         const json = try std.json.stringifyAlloc(self.allocator, http_request, .{ .emit_null_optional_fields = false });
         defer self.allocator.free(json);
         const req = self.allocateBytes(json);
-        defer req.free();
         const req_body = b: {
             if (body) |bdy| {
                 break :b self.allocateBytes(bdy);
@@ -213,7 +205,6 @@ pub const Plugin = struct {
                 break :b self.allocate(0);
             }
         };
-        defer req_body.free();
         const offset = extism.http_request(req.offset, req_body.offset);
         const length = extism.length_unsafe(offset);
         const status: u16 = @intCast(extism.http_status_code());
