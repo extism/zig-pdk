@@ -3,7 +3,7 @@ const Memory = @import("Memory.zig");
 
 pub const HttpResponse = struct {
     memory: Memory,
-    statusCode: u16,
+    status: u16,
 
     /// IMPORTANT: it's the caller's responsibility to free the returned string
     pub fn body(self: HttpResponse, allocator: std.mem.Allocator) ![]u8 {
@@ -17,8 +17,8 @@ pub const HttpResponse = struct {
         self.memory.free();
     }
 
-    pub fn status(self: HttpResponse) u16 {
-        return self.statusCode;
+    pub fn statusCode(self: HttpResponse) u16 {
+        return self.status;
     }
 };
 

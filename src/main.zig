@@ -212,7 +212,7 @@ pub const Plugin = struct {
         const mem = Memory.init(offset, length);
         return http.HttpResponse{
             .memory = mem,
-            .statusCode = status,
+            .status = status,
         };
     }
 };
