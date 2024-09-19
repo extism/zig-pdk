@@ -131,9 +131,9 @@ export fn http_get() i32 {
     const res = plugin.request(req, null) catch unreachable;
     defer res.deinit();
 
-    if (res.status != 200) {
+    if (res.statusCode != 200) {
         plugin.setError("request failed");
-        return @as(i32, res.status);
+        return @as(i32, res.statusCode);
     }
 
     // get the bytes for the res body
