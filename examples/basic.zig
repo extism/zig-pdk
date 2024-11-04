@@ -123,9 +123,9 @@ export fn http_get() i32 {
     var req = http.HttpRequest.init("GET", "https://jsonplaceholder.typicode.com/todos/1");
     defer req.deinit(allocator);
 
-    // // set headers on the request object
-    // req.setHeader(allocator, "some-name", "some-value") catch unreachable;
-    // req.setHeader(allocator, "another", "again") catch unreachable;
+    // set headers on the request object
+    req.setHeader(allocator, "some-name", "some-value") catch unreachable;
+    req.setHeader(allocator, "another", "again") catch unreachable;
 
     // make the request and get the response back
     const res = plugin.request(req, null) catch unreachable;
