@@ -227,7 +227,7 @@ pub const Plugin = struct {
         const status: u16 = @intCast(extism.http_status_code());
 
         const headersOffset = extism.http_headers();
-        const headersLength = extism.length(offset);
+        const headersLength = extism.length_unsafe(headersOffset);
         const headersMem = Memory.init(headersOffset, headersLength);
 
         const mem = Memory.init(offset, length);
