@@ -3,7 +3,7 @@ const extism = @import("ffi.zig");
 const Memory = @import("Memory.zig");
 pub const http = @import("http.zig");
 
-const LogLevel = enum { Info, Debug, Warn, Error };
+pub const LogLevel = enum { Trace, Debug, Info, Warn, Error };
 
 pub fn Json(comptime T: type) type {
     return struct {
@@ -122,6 +122,11 @@ pub const Plugin = struct {
         extism.error_set(offset);
     }
 
+    pub fn setErrorFmt(self: Plugin, comptime fmt: []const u8, args: anytype) !void {
+        const data = try std.fmt.allocPrint(self.allocator, fmt, args);
+        self.setError(data);
+    }
+
     /// IMPORTANT: it's the caller's responsibility to free the returned string
     pub fn getConfig(self: Plugin, key: []const u8) !?[]u8 {
         const key_mem = self.allocateBytes(key);
@@ -139,16 +144,26 @@ pub const Plugin = struct {
     pub fn logMemory(self: Plugin, level: LogLevel, memory: Memory) void {
         _ = self; // to make the interface consistent
         switch (level) {
-            .Info => extism.log_info(memory.offset),
+            .Trace => extism.log_trace(memory.offset),
             .Debug => extism.log_debug(memory.offset),
+            .Info => extism.log_info(memory.offset),
             .Warn => extism.log_warn(memory.offset),
             .Error => extism.log_error(memory.offset),
         }
     }
 
     pub fn log(self: Plugin, level: LogLevel, data: []const u8) void {
-        const mem = self.allocateBytes(data);
-        self.logMemory(level, mem);
+        if (loggingEnabled(level)) {
+            const mem = self.allocateBytes(data);
+            self.logMemory(level, mem);
+        }
+    }
+
+    pub fn logFmt(self: Plugin, level: LogLevel, comptime fmt: []const u8, args: anytype) !void {
+        if (loggingEnabled(level)) {
+            const data = try std.fmt.allocPrint(self.allocator, fmt, args);
+            self.log(level, data);
+        }
     }
 
     /// IMPORTANT: it's the caller's responsibility to free the returned string
@@ -216,3 +231,17 @@ pub const Plugin = struct {
         };
     }
 };
+
+fn loggingEnabled(level: LogLevel) bool {
+    const currentLevelInt = extism.get_log_level();
+    if (currentLevelInt == std.math.maxInt(i32)) {
+        return false;
+    }
+
+    const levelInt = @intFromEnum(level);
+    if (levelInt >= currentLevelInt) {
+        return true;
+    }
+
+    return false;
+}
