@@ -150,7 +150,6 @@ pub const Plugin = struct {
             .Info => extism.log_info(memory.offset),
             .Warn => extism.log_warn(memory.offset),
             .Error => extism.log_error(memory.offset),
-            .Trace => unreachable, // TODO: trace
         }
     }
 
