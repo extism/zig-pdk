@@ -122,6 +122,11 @@ pub const Plugin = struct {
         extism.error_set(offset);
     }
 
+    pub fn setErrorFmt(self: Plugin, comptime fmt: []const u8, args: anytype) !void {
+        const data = try std.fmt.allocPrint(self.allocator, fmt, args);
+        self.setError(data);
+    }
+
     /// IMPORTANT: it's the caller's responsibility to free the returned string
     pub fn getConfig(self: Plugin, key: []const u8) !?[]u8 {
         const key_mem = self.allocateBytes(key);
@@ -148,15 +153,16 @@ pub const Plugin = struct {
     }
 
     pub fn log(self: Plugin, level: LogLevel, data: []const u8) void {
-        const currentLevelInt = extism.get_log_level();
-        if (currentLevelInt == std.math.maxInt(i32)) {
-            return;
-        }
-
-        const levelInt = @intFromEnum(level);
-        if (levelInt >= currentLevelInt) {
+        if (loggingEnabled(level)) {
             const mem = self.allocateBytes(data);
             self.logMemory(level, mem);
+        }
+    }
+
+    pub fn logFmt(self: Plugin, level: LogLevel, comptime fmt: []const u8, args: anytype) !void {
+        if (loggingEnabled(level)) {
+            const data = try std.fmt.allocPrint(self.allocator, fmt, args);
+            self.log(level, data);
         }
     }
 
@@ -225,3 +231,17 @@ pub const Plugin = struct {
         };
     }
 };
+
+fn loggingEnabled(level: LogLevel) bool {
+    const currentLevelInt = extism.get_log_level();
+    if (currentLevelInt == std.math.maxInt(i32)) {
+        return false;
+    }
+
+    const levelInt = @intFromEnum(level);
+    if (levelInt >= currentLevelInt) {
+        return true;
+    }
+
+    return false;
+}
