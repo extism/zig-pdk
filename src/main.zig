@@ -3,7 +3,7 @@ const extism = @import("ffi.zig");
 const Memory = @import("Memory.zig");
 pub const http = @import("http.zig");
 
-const LogLevel = enum { Info, Debug, Warn, Error };
+pub const LogLevel = enum { Trace, Debug, Info, Warn, Error };
 
 pub fn Json(comptime T: type) type {
     return struct {
@@ -139,16 +139,25 @@ pub const Plugin = struct {
     pub fn logMemory(self: Plugin, level: LogLevel, memory: Memory) void {
         _ = self; // to make the interface consistent
         switch (level) {
-            .Info => extism.log_info(memory.offset),
+            .Trace => extism.log_trace(memory.offset),
             .Debug => extism.log_debug(memory.offset),
+            .Info => extism.log_info(memory.offset),
             .Warn => extism.log_warn(memory.offset),
             .Error => extism.log_error(memory.offset),
         }
     }
 
     pub fn log(self: Plugin, level: LogLevel, data: []const u8) void {
-        const mem = self.allocateBytes(data);
-        self.logMemory(level, mem);
+        const currentLevelInt = extism.get_log_level();
+        if (currentLevelInt == std.math.maxInt(i32)) {
+            return;
+        }
+
+        const levelInt = @intFromEnum(level);
+        if (levelInt >= currentLevelInt) {
+            const mem = self.allocateBytes(data);
+            self.logMemory(level, mem);
+        }
     }
 
     /// IMPORTANT: it's the caller's responsibility to free the returned string
