@@ -4,6 +4,7 @@ const Memory = @import("Memory.zig");
 pub const HttpResponse = struct {
     memory: Memory,
     status: u16,
+    responseHeaders: Memory,
 
     /// IMPORTANT: it's the caller's responsibility to free the returned string
     pub fn body(self: HttpResponse, allocator: std.mem.Allocator) ![]u8 {
@@ -15,10 +16,18 @@ pub const HttpResponse = struct {
 
     pub fn deinit(self: HttpResponse) void {
         self.memory.free();
+        self.responseHeaders.free();
     }
 
     pub fn statusCode(self: HttpResponse) u16 {
         return self.status;
+    }
+
+    pub fn headers(self: HttpResponse, allocator: std.mem.Allocator) !std.StringArrayHashMap([]u8) {
+        const buf = try allocator.alloc(u8, @intCast(self.responseHeaders.length));
+        self.responseHeaders.load(buf);
+        const out = try std.json.parseFromSlice(std.StringArrayHashMap([]u8), allocator, buf, .{ .allocate = .alloc_always, .ignore_unknown_fields = true });
+        return out.value;
     }
 };
 

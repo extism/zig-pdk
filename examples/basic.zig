@@ -136,6 +136,12 @@ export fn http_get() i32 {
         return @as(i32, res.status);
     }
 
+    const headers = res.headers(allocator) catch unreachable;
+    const content_type = headers.get("content-type");
+    if (content_type) |t| {
+        plugin.log(.Debug, t);
+    }
+
     // get the bytes for the res body
     const body = res.body(allocator) catch unreachable;
     // => { "userId": 1, "id": 1, "title": "delectus aut autem", "completed": false }

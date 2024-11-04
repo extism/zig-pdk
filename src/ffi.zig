@@ -17,6 +17,7 @@ pub extern "extism:host/env" fn store_u64(ExtismPointer, u64) void;
 pub extern "extism:host/env" fn load_u64(ExtismPointer) u64;
 pub extern "extism:host/env" fn http_request(ExtismPointer, ExtismPointer) ExtismPointer;
 pub extern "extism:host/env" fn http_status_code() i32;
+pub extern "extism:host/env" fn http_headers() ExtismPointer;
 pub extern "extism:host/env" fn get_log_level() i32;
 pub extern "extism:host/env" fn log_trace(ExtismPointer) void;
 pub extern "extism:host/env" fn log_debug(ExtismPointer) void;
