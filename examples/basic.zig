@@ -135,8 +135,8 @@ export fn http_get() i32 {
         plugin.setError("request failed");
         return @as(i32, res.status);
     }
-    var headers = res.headers(plugin.allocator) catch {
-        plugin.setError("failed to get headers from response!");
+    var headers = res.headers(plugin.allocator) catch |err| {
+        plugin.setErrorFmt("err: {any}, failed to get headers from response!", .{err}) catch unreachable;
         return -1;
     };
     defer headers.deinit();
