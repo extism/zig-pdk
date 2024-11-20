@@ -443,7 +443,76 @@ python3 app.py
 # => An argument to send to Python!
 ```
 
-### Reach Out!
+## Generating Bindings
+
+It's often very useful to define a schema to describe the function signatures
+and types you want to use between Extism SDK and PDK languages.
+
+[XTP Bindgen](https://github.com/dylibso/xtp-bindgen) is an open source
+framework to generate PDK bindings for Extism plug-ins. It's used by the
+[XTP Platform](https://www.getxtp.com/), but can be used outside of the platform
+to define any Extism compatible plug-in system.
+
+### 1. Install the `xtp` CLI.
+
+See installation instructions
+[here](https://docs.xtp.dylibso.com/docs/cli#installation).
+
+### 2. Create a schema using our OpenAPI-inspired IDL:
+
+```yaml
+version: v1-draft
+exports: 
+  CountVowels:
+      input: 
+          type: string
+          contentType: text/plain; charset=utf-8
+      output:
+          $ref: "#/components/schemas/VowelReport"
+          contentType: application/json
+# components.schemas defined in example-schema.yaml...
+```
+
+> See an example in [example-schema.yaml](./example-schema.yaml), or a full
+> "kitchen sink" example on
+> [the docs page](https://docs.xtp.dylibso.com/docs/concepts/xtp-schema/).
+
+### 3. Generate bindings to use from your plugins:
+
+```
+xtp plugin init --schema-file ./example-schema.yaml
+    1. TypeScript                      
+    2. Go                              
+    3. Rust                            
+    4. Python                          
+    5. C#                              
+  > 6. Zig                             
+    7. C++                             
+    8. GitHub Template                 
+    9. Local Template
+```
+
+This will create an entire boilerplate plugin project for you to get started
+with:
+
+```zig
+/// returns VowelReport (The result of counting vowels on the Vowels input.)
+pub fn CountVowels(input: []const u8) !schema.VowelReport {
+    // TODO: fill out your implementation here
+    _ = input;
+    return error.PluginFunctionNotImplemented;
+}
+```
+
+Implement the empty function(s), and run `xtp plugin build` to compile your
+plugin.
+
+> For more information about XTP Bindgen, see the
+> [dylibso/xtp-bindgen](https://github.com/dylibso/xtp-bindgen) repository and
+> the official
+> [XTP Schema documentation](https://docs.xtp.dylibso.com/docs/concepts/xtp-schema).
+
+## Reach Out!
 
 Have a question or just want to drop in and say hi?
 [Hop on the Discord](https://extism.org/discord)!
