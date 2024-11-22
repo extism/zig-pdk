@@ -143,6 +143,7 @@ pub const Plugin = struct {
 
     pub fn logMemory(self: Plugin, level: LogLevel, memory: Memory) void {
         _ = self; // to make the interface consistent
+
         switch (level) {
             .Trace => extism.log_trace(memory.offset),
             .Debug => extism.log_debug(memory.offset),
@@ -224,10 +225,15 @@ pub const Plugin = struct {
         const length = extism.length_unsafe(offset);
         const status: u16 = @intCast(extism.http_status_code());
 
+        const headersOffset = extism.http_headers();
+        const headersLength = extism.length_unsafe(headersOffset);
+        const headersMem = Memory.init(headersOffset, headersLength);
+
         const mem = Memory.init(offset, length);
         return http.HttpResponse{
             .memory = mem,
             .status = status,
+            .responseHeaders = headersMem,
         };
     }
 };

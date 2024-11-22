@@ -163,6 +163,35 @@ export fn http_get() i32 {
     return 0;
 }
 
+export fn http_headers() i32 {
+    const plugin = Plugin.init(allocator);
+
+    var req = http.HttpRequest.init("GET", "https://github.com");
+    defer req.deinit(allocator);
+
+    const res = plugin.request(req, null) catch unreachable;
+    defer res.deinit();
+
+    if (res.status != 200) {
+        plugin.setError("request failed");
+        return @as(i32, res.status);
+    }
+    var headers = res.headers(plugin.allocator) catch |err| {
+        plugin.setErrorFmt("err: {any}, failed to get headers from response!", .{err}) catch unreachable;
+        return -1;
+    };
+    defer headers.deinit();
+
+    const content_type = headers.get("content-type");
+    if (content_type) |t| {
+        plugin.logFmt(.Debug, "got content-type: {s}", .{t.value}) catch unreachable;
+    } else {
+        return 1;
+    }
+
+    return 0;
+}
+
 export fn greet() i32 {
     const plugin = Plugin.init(allocator);
     const user = plugin.getConfig("user") catch unreachable orelse {
