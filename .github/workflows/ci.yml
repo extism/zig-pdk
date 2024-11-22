@@ -77,5 +77,5 @@ jobs:
           COUNT=$(echo $TEST | jq | grep "I'm the inner struct" | wc -l)
           test $COUNT -eq 3
 
-          TEST=$(extism call zig-out/bin/basic-example.wasm http_get --input '' --allow-host jsonplaceholder.typicode.com --enable-http-response-headers --log-level debug 2>&1)
-          echo $TEST | grep "application/json; charset=utf-8"
+          TEST=$(extism call zig-out/bin/basic-example.wasm http_headers --input '' --allow-host github.com --enable-http-response-headers --log-level debug 2>&1)
+          echo $TEST | grep "text/html"

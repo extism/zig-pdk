@@ -135,16 +135,6 @@ export fn http_get() i32 {
         plugin.setError("request failed");
         return @as(i32, res.status);
     }
-    var headers = res.headers(plugin.allocator) catch |err| {
-        plugin.setErrorFmt("err: {any}, failed to get headers from response!", .{err}) catch unreachable;
-        return -1;
-    };
-    defer headers.deinit();
-
-    const content_type = headers.get("content-type");
-    if (content_type) |t| {
-        plugin.log(.Debug, t.value); // something like 'application/json; charset=utf-8'
-    }
 
     // get the bytes for the res body
     const body = res.body(allocator) catch unreachable;
@@ -169,6 +159,35 @@ export fn http_get() i32 {
 
     // `outputMemory` provides a zero-copy way to write plugin data back to the host
     plugin.outputMemory(outMem);
+
+    return 0;
+}
+
+export fn http_headers() i32 {
+    const plugin = Plugin.init(allocator);
+
+    var req = http.HttpRequest.init("GET", "https://github.com");
+    defer req.deinit(allocator);
+
+    const res = plugin.request(req, null) catch unreachable;
+    defer res.deinit();
+
+    if (res.status != 200) {
+        plugin.setError("request failed");
+        return @as(i32, res.status);
+    }
+    var headers = res.headers(plugin.allocator) catch |err| {
+        plugin.setErrorFmt("err: {any}, failed to get headers from response!", .{err}) catch unreachable;
+        return -1;
+    };
+    defer headers.deinit();
+
+    const content_type = headers.get("content-type");
+    if (content_type) |t| {
+        plugin.logFmt(.Debug, "got content-type: {s}", .{t.value}) catch unreachable;
+    } else {
+        return 1;
+    }
 
     return 0;
 }
