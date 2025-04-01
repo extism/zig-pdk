@@ -31,7 +31,7 @@ pub fn build(b: *std.Build) void {
         // if you're using WASI, change the .os_tag to .wasi
         .default_target = .{ .abi = .musl, .os_tag = .freestanding, .cpu_arch = .wasm32 },
     });
-    const pdk_module = b.dependency("extism-pdk", .{ .target = target, .optimize = optimize }).module("extism-pdk");
+    const pdk_module = b.dependency("extism_pdk", .{ .target = target, .optimize = optimize }).module("extism-pdk");
     var plugin = b.addExecutable(.{
         .name = "my-plugin",
         .root_source_file = .{ .path = "src/main.zig" },
