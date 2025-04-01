@@ -1,2 +1,3 @@
-zig-*
+.zig-cache
+zig-out
 examples-out

@@ -1,5 +1,7 @@
 .{
-    .name = "extism-pdk",
-    .version = "1.2.0",
+    .name = .extism_pdk,
+    .version = "1.2.1",
+    .minimum_zig_version = "0.14.0",
+    .fingerprint = 0x5971fd97f3e84356,
     .paths = .{""},
 }

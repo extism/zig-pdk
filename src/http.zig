@@ -22,7 +22,7 @@ pub const Headers = struct {
     }
 
     /// Access the internal data to iterate over or mutate as needed.
-    pub fn internal(self: Headers) std.json.ArrayHashMap([]const u8) {
+    pub fn getInternal(self: Headers) std.json.ArrayHashMap([]const u8) {
         return self.internal;
     }
 
