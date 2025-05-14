@@ -23,9 +23,9 @@ jobs:
         run: extism --version
 
       - name: Install Zig
-        uses: goto-bus-stop/setup-zig@v2
+        uses: mlugg/setup-zig@v2
         with:
-          version: 0.13.0
+          version: 0.14.0
 
       - name: Check Zig Version
         run: zig version

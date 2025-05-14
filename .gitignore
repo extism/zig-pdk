@@ -1,2 +1,4 @@
-zig-*
+.zig-cache
+zig-out
 examples-out
+.DS_Store

@@ -4,7 +4,7 @@ const builtin = @import("builtin");
 pub fn build(b: *std.Build) void {
     comptime {
         const current_zig = builtin.zig_version;
-        const min_zig = std.SemanticVersion.parse("0.13.0-dev.230+50a141945") catch unreachable; // build system changes: ziglang/zig#19597
+        const min_zig = std.SemanticVersion.parse("0.14.0") catch unreachable; // https://ziglang.org/download/0.14.0/release-notes.html
         if (current_zig.order(min_zig) == .lt) {
             @compileError(std.fmt.comptimePrint("Your Zig version v{} does not meet the minimum build requirement of v{}", .{ current_zig, min_zig }));
         }
