@@ -17,10 +17,15 @@ jobs:
       # - uses: ./.github/actions/libextism
       - name: Install Extism CLI
         shell: sh
-        run: sudo curl -s https://get.extism.org/cli | sh -s -- -q -y
+        run: sudo curl -s https://get.extism.org/cli | sh -s -- -y
       
       - name: Check Extism version
-        run: extism --version
+        run: |
+          VERSION_OUTPUT=$(extism --version)
+          if [ -z "$VERSION_OUTPUT" ]; then
+              echo "extism --version produced empty output"
+              exit 1
+          fi
 
       - name: Install Zig
         uses: mlugg/setup-zig@v2
@@ -36,6 +41,16 @@ jobs:
 
       - name: Test example
         run : |
+          set -eE -o functrace
+
+          failure() {
+            local lineno=$1
+            local msg=$2
+            echo "Failed at $lineno: $msg"
+          }
+          trap 'failure ${LINENO} "$BASH_COMMAND" "$TEST"' ERR
+
+          
           TEST=$(extism call zig-out/bin/basic-example.wasm --input "this is a test" --set-config='{"thing": "1", "a": "b"}' --log-level=debug count_vowels | jq)
           echo $TEST | grep '"count": 4'
           echo $TEST | grep '"config": "1"'
